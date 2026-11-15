@@ -1,0 +1,61 @@
+# Sensitive environment and credentials
+.env
+.env.*
+*.env
+
+# Version control
+.git
+.gitignore
+
+# Python cache and bytecode
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv
+venv
+env
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing & Linting cache
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Database and TSDB runtime storage
+tsdb_data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# OS / Editor temporary files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/

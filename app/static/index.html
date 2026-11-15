@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="ko" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AGV/AMR Network Telemetry &amp; RCA Center | 무선 네트워크 사전 감지·사후 분석 관제 시스템</title>
+  <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+<body>
+
+  <!-- ====================================================================
+       TOP GLOBAL NAVIGATION BAR (Fixed 60px Height)
+       ==================================================================== -->
+  <header class="top-navbar" id="top-navbar">
+    <div class="navbar-inner">
+      <!-- Brand & Live TSDB Status -->
+      <div class="navbar-brand">
+        <div class="brand-logo" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+            <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+            <line x1="12" y1="20" x2="12.01" y2="20"></line>
+          </svg>
+        </div>
+        <div class="brand-titles">
+          <span class="brand-title-main">AGV/AMR Network Telemetry &amp; RCA Center</span>
+          <span class="brand-subtitle">ACS 30s Socket Reporting Limitations &amp; 1s Hybrid Pre-Detection / Post-Mortem Engine</span>
+        </div>
+        <div class="live-stream-badge mono" id="tsdb-live-badge" title="SQLite3 WAL Embedded Time-Series Database Live Stream">
+          <span class="pulse-dot"></span>
+          <span>LIVE TSDB • 1s/30s Stream</span>
+          <span id="nav-tsdb-count" class="tabular-nums">(3,600 pts)</span>
+        </div>
+      </div>
+
+      <!-- 4 Main View Navigation Tabs -->
+      <nav class="navbar-tabs" role="tablist" aria-label="관제 뷰 전환 탭">
+        <button class="nav-tab active" data-tab="tab-live" role="tab" aria-selected="true" id="tab-btn-live">
+          <span class="tab-step-num">1</span>
+          <span>실시간 관제 &amp; 2D 맵</span>
+        </button>
+        <button class="nav-tab" data-tab="tab-rca" role="tab" aria-selected="false" id="tab-btn-rca">
+          <span class="tab-step-num">2</span>
+          <span>사전 감지 &amp; 사후 분석 랩</span>
+        </button>
+        <button class="nav-tab" data-tab="tab-catalog" role="tab" aria-selected="false" id="tab-btn-catalog">
+          <span class="tab-step-num">3</span>
+          <span>수집 항목 백과사전 (18종)</span>
+        </button>
+        <button class="nav-tab" data-tab="tab-arch" role="tab" aria-selected="false" id="tab-btn-arch">
+          <span class="tab-step-num">4</span>
+          <span>하이브리드 수집 아키텍처</span>
+        </button>
+      </nav>
+
+      <!-- Action Controls: Guided Tour & Theme Toggle -->
+      <div class="navbar-actions">
+        <button class="btn btn-tour" id="btn-start-tour" type="button" title="발표 및 시연용 7단계 인터랙티브 투어 가이드 실행">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polygon points="10 8 16 12 10 16 10 8"></polygon>
+          </svg>
+          <span>투어 가이드 (7단계 설명)</span>
+        </button>
+        <button class="btn" id="btn-theme-toggle" type="button" title="다크 슬레이트 / 라이트 엔터프라이즈 테마 즉시 전환">
+          <span id="theme-icon">☀️</span>
+          <span id="theme-label">Light 테마</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ====================================================================
+       MAIN APPLICATION SHELL (1600px Max Width, 12-Col Grid)
+       ==================================================================== -->
+  <main class="app-container">
+
+    <!-- Polite Initial Welcome & Guided Tour Banner -->
+    <section class="welcome-banner" id="welcome-tour-banner" aria-label="시스템 소개 및 가이드 투어 안내">
+      <div class="welcome-content">
+        <div class="welcome-title">
+          <span class="badge badge-sky">CORE INSIGHT</span>
+          <span>왜 기존 30초 소켓 상태 보고만으로는 AGV 무선 끊김을 사전 감지하거나 원인을 밝힐 수 없는가?</span>
+        </div>
+        <p class="welcome-desc">
+          이동 중인 AGV의 로밍 지연·전파 음영·소켓 버퍼 적체는 <strong>3~15초 이내</strong>에 급격히 진행되어 30초 보고 주기 사이에 예고 없이 연결이 끊어집니다.
+          본 시스템은 <strong>Stage 1(AGV 로컬 1초 링버퍼) + Stage 2(30초 통계 피기백) + Stage 3(단절 18초 전 조기 경보 &amp; 사후 블랙박스 덤프)</strong>를 내장형 시계열 DB(TSDB)로 실시간 시연합니다.
+        </p>
+      </div>
+      <div class="welcome-actions">
+        <button class="btn btn-primary" id="btn-welcome-start-tour" type="button">▶ 투어 시작하기 (발표자 가이드)</button>
+        <button class="btn" id="btn-welcome-close" type="button">닫기</button>
+      </div>
+    </section>
+
+    <!-- ==================================================================
+         TAB 1: 실시간 관제 & 2D 맵 (Live Fleet & 2D Floor Map)
+         ================================================================== -->
+    <section class="tab-view active" id="tab-live" role="tabpanel">
+
+      <!-- Row 1: 4 Horizontal KPI Summary Cards (Strict Equal Height) -->
+      <div class="grid-12" id="live-kpi-row">
+        <!-- KPI 1: Fleet Connection Status -->
+        <article class="card kpi-card col-span-3" id="kpi-card-fleet">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="title-accent-bar ok"></span>
+              <h2 class="text-h3">운행 AGV 연결 상태</h2>
+            </div>
+            <span class="badge badge-ok" id="kpi-fleet-badge">LIVE 6 AGVs</span>
+          </div>
+          <div class="kpi-main-row">
+            <div>
+              <span class="kpi-hero-value color-ok tabular-nums" id="kpi-connected-val">6 / 6</span>
+              <span class="kpi-unit">정상 연결 대수</span>
+            </div>
+            <span class="text-caption mono" id="kpi-avg-rssi">평균 -60.5 dBm</span>
+          </div>
+          <div class="kpi-meta-grid">
+            <div class="kpi-meta-item">
+              <span class="kpi-meta-label">정상 (Connected)</span>
+              <span class="kpi-meta-val color-ok tabular-nums" id="kpi-cnt-normal">6대</span>
+            </div>
+            <div class="kpi-meta-item">
+              <span class="kpi-meta-label">사전감지 (Warning)</span>
+              <span class="kpi-meta-val color-warn tabular-nums" id="kpi-cnt-warn">0대</span>
+            </div>
+            <div class="kpi-meta-item">
+              <span class="kpi-meta-label">단절 (Disconnected)</span>
+              <span class="kpi-meta-val color-crit tabular-nums" id="kpi-cnt-crit">0대</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- KPI 2: 30s Socket Reporting Success Rate & Drift -->
+        <article class="card kpi-card col-span-3" id="kpi-card-report30s">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="title-accent-bar"></span>
+              <h2 class="text-h3">30초 소켓 보고 성공률 &amp; 주기 편차</h2>
+            </div>
+            <span class="badge badge-sky">ACS TCP:9000</span>
+          </div>
+          <div class="kpi-main-row">
+            <div>
+              <span class="kpi-hero-value color-accent tabular-nums" id="kpi-report-rate">99.2%</span>
+              <span class="kpi-unit">보고 성공률</span>
+            </div>
+            <span class="text-caption mono" id="kpi-hb-drift">30.1s ± 0.4s</span>
+          </div>
+          <div class="kpi-meta-grid">
+            <div class="kpi-meta-item">
+              <span class="kpi-meta-label">기준 보고 주기</span>
+              <span class="kpi-meta-val tabular-nums">30.0 sec</span>
+            </div>
+            <div class="kpi-meta-item">
+              <span class="kpi-meta-label">단일 보고 사각지대</span>
+              <span class="kpi-meta-val color-warn tabular-nums">29.9 sec</span>
+            </div>
+            <div class="kpi-meta-item">
+              <span class="kpi-meta-label">피기백 오버헤드</span>
+              <span class="kpi-meta-val color-ok tabular-nums">+96 Bytes</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- KPI 3: Pre-Detection Lead Time -->
+        <article class="card kpi-card col-span-3" id="kpi-card-predetect">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="title-accent-bar warn"></span>
+              <h2 class="text-h3">사전 감지 선행 시간 (Lead Time)</h2>
+            </div>
+            <span class="badge badge-warn" id="kpi-predetect-badge">EWMA Risk ≥ 70</span>
+          </div>
+          <div class="kpi-main-row">
+            <div>
+              <span class="kpi-hero-value color-warn tabular-nums" id="kpi-lead-time">16.5s</span>
+              <span class="kpi-unit">단절 전 평균 조기 경보</span>
+            </div>
+            <span class="text-caption mono" id="kpi-active-alerts">활성 경보 0건</span>
+          </div>
+          <div class="kpi-meta-grid">
+            <div class="kpi-meta-item">
+              <span class="kpi-meta-label">감지 알고리즘</span>
+              <span class="kpi-meta-val">5-지표 EWMA</span>
+            </div>
+            <div class="kpi-meta-item">
+              <span class="kpi-meta-label">선행 범위</span>
+              <span class="kpi-meta-val color-warn tabular-nums">14.0 ~ 18.0s</span>
+            </div>
+            <div class="kpi-meta-item">
+              <span class="kpi-meta-label">누적 RCA 판별</span>
+              <span class="kpi-meta-val tabular-nums" id="kpi-incident-total">4건 완료</span>
+            </div>
+          </div>
+        </article>
+
+        <!-- KPI 4: Embedded Live TSDB Engine Status -->
+        <article class="card kpi-card col-span-3" id="kpi-card-tsdb">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="title-accent-bar indigo"></span>
+              <h2 class="text-h3">내장 시계열 DB (Live TSDB) 상태</h2>
+            </div>
+            <span class="badge badge-indigo">SQLite3 WAL</span>
+          </div>
+          <div class="kpi-main-row">
+            <div>
+              <span class="kpi-hero-value color-indigo tabular-nums" id="kpi-tsdb-rows">3,600</span>
+              <span class="kpi-unit">1s 고해상도 레코드</span>
+            </div>
+            <span class="text-caption mono" id="kpi-tsdb-size">420 KB</span>
+          </div>
+          <div class="kpi-meta-grid">
+            <div class="kpi-meta-item">
+              <span class="kpi-meta-label">1s 스트림 적재율</span>
+              <span class="kpi-meta-val color-ok tabular-nums">6.0 rows/s</span>
+            </div>
+            <div class="kpi-meta-item">
+              <span class="kpi-meta-label">30s 보고 누적</span>
+              <span class="kpi-meta-val tabular-nums" id="kpi-tsdb-reports">120건</span>
+            </div>
+            <div class="kpi-meta-item">
+              <span class="kpi-meta-label">보관 주기</span>
+              <span class="kpi-meta-val">Rolling Window</span>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <!-- Row 2: Left 7 Cols (2D Smart Factory Floor Map) + Right 5 Cols (Injector + Fleet Table + Mini Stream) -->
+      <div class="grid-12">
+        <!-- Left 7 Cols: Interactive 2D Factory Floor Plan & Wi-Fi Coverage Heatmap -->
+        <article class="card col-span-7" id="panel-floor-map">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="title-accent-bar"></span>
+              <h2 class="text-h2">스마트 팩토리 2D 플로어 맵 &amp; Wi-Fi 전파/음영 히트맵 (100m × 60m)</h2>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center;">
+              <button class="btn btn-sm" id="btn-toggle-heatmap" type="button">전파 반경: ON</button>
+              <button class="btn btn-sm" id="btn-toggle-zones" type="button">음영/EMI 구역: ON</button>
+              <span class="badge badge-neutral mono" id="map-selected-agv-pill">선택: AGV-02</span>
+            </div>
+          </div>
+
+          <div class="map-canvas-wrapper">
+            <canvas id="factory-map-canvas" width="900" height="430" aria-label="공장 2D 레이아웃 및 AGV 실시간 위치 히트맵"></canvas>
+            <div class="map-overlay-legend">
+              <span class="legend-item"><span class="legend-dot" style="background:#10B981;"></span>정상 (Risk &lt; 45)</span>
+              <span class="legend-item"><span class="legend-dot" style="background:#F59E0B;"></span>사전 감지 경보 (45~84)</span>
+              <span class="legend-item"><span class="legend-dot" style="background:#F43F5E;"></span>소켓 단절 (≥ 85)</span>
+              <span class="legend-item"><span class="legend-dot" style="background:#38BDF8;"></span>AP 무선 커버리지</span>
+              <span class="legend-item"><span class="legend-dot" style="background:#F43F5E; opacity:0.6;"></span>철제 랙 음영 / 용접 EMI 간섭 구역</span>
+            </div>
+          </div>
+
+          <!-- AP 4-Zone Live Status Strip -->
+          <div class="ap-status-strip" id="ap-status-strip">
+            <div class="ap-mini-card">
+              <div class="ap-mini-header"><span>AP-ZONE-A</span><span class="badge badge-ok">CH 36</span></div>
+              <div class="ap-mini-meta mono"><span>(20m, 15m)</span><span>Util: 24%</span></div>
+            </div>
+            <div class="ap-mini-card">
+              <div class="ap-mini-header"><span>AP-ZONE-B</span><span class="badge badge-ok">CH 44</span></div>
+              <div class="ap-mini-meta mono"><span>(75m, 15m)</span><span>Util: 28%</span></div>
+            </div>
+            <div class="ap-mini-card">
+              <div class="ap-mini-header"><span>AP-ZONE-C</span><span class="badge badge-warn">CH 149</span></div>
+              <div class="ap-mini-meta mono"><span>(75m, 45m)</span><span>Util: 36%</span></div>
+            </div>
+            <div class="ap-mini-card">
+              <div class="ap-mini-header"><span>AP-ZONE-D</span><span class="badge badge-ok">CH 157</span></div>
+              <div class="ap-mini-meta mono"><span>(20m, 45m)</span><span>Util: 22%</span></div>
+            </div>
+          </div>
+
+          <!-- Selected AGV Spatial Telemetry Bar -->
+          <div class="injector-status-bar mono" style="margin-top:10px;" id="map-agv-detail-bar">
+            <span><strong>[선택 AGV-02]</strong> 좌표: (46.2m, 15.0m) | 속도: 1.4 m/s | 연결 AP: AP-ZONE-A (00:1A:2B:01)</span>
+            <span class="color-accent">맵 위의 AGV 또는 우측 테이블 행을 클릭하여 타깃 변경</span>
+          </div>
+        </article>
+
+        <!-- Right 5 Cols: Scenario Injector + Live Fleet Table + Selected AGV 1s Mini Chart -->
+        <div class="col-span-5 right-col-stack">
+
+          <!-- Sub-Card 1: Live Failure Scenario Injector -->
+          <article class="card" id="panel-scenario-injector" style="padding:16px 20px;">
+            <div class="card-header" style="margin-bottom:8px;">
+              <div class="card-title-group">
+                <span class="title-accent-bar warn"></span>
+                <h2 class="text-h2">실시간 장애 시나리오 주입기 (Live Fault Injector)</h2>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <label for="injector-target-agv" class="text-caption">대상:</label>
+                <select id="injector-target-agv" class="btn btn-sm mono" style="padding:0 8px;">
+                  <option value="AGV-01">AGV-01</option>
+                  <option value="AGV-02" selected>AGV-02</option>
+                  <option value="AGV-03">AGV-03</option>
+                  <option value="AGV-04">AGV-04</option>
+                  <option value="AGV-05">AGV-05</option>
+                  <option value="AGV-06">AGV-06</option>
+                </select>
+                <button class="btn btn-sm btn-ok" id="btn-scenario-reset" type="button" title="모든 AGV 장애 시나리오 초기화 및 정상 상태 복구">정상 복구 (Reset)</button>
+              </div>
+            </div>
+
+            <div class="injector-controls">
+              <div class="injector-btn-grid">
+                <button class="btn-scenario-trigger" data-scn="SCN-01" type="button">
+                  <div class="scn-btn-top"><span class="mono">SCN-01 주입</span><span>T-18s 감지</span></div>
+                  <div class="scn-btn-title">AP 로밍 실패 (Sticky Client)</div>
+                </button>
+                <button class="btn-scenario-trigger" data-scn="SCN-02" type="button">
+                  <div class="scn-btn-top"><span class="mono">SCN-02 주입</span><span>T-16s 감지</span></div>
+                  <div class="scn-btn-title">물리적 음영 &amp; EMI 간섭</div>
+                </button>
+                <button class="btn-scenario-trigger" data-scn="SCN-03" type="button">
+                  <div class="scn-btn-top"><span class="mono">SCN-03 주입</span><span>T-15s 감지</span></div>
+                  <div class="scn-btn-title">AP 과부하 / 채널 혼잡 (CCA)</div>
+                </button>
+                <button class="btn-scenario-trigger" data-scn="SCN-04" type="button">
+                  <div class="scn-btn-top"><span class="mono">SCN-04 주입</span><span>T-14s 감지</span></div>
+                  <div class="scn-btn-title">AGV/ACS 소켓 행 &amp; CPU 병목</div>
+                </button>
+              </div>
+              <div class="injector-status-bar" id="injector-status-msg">
+                <span>⚡ 버튼을 누르면 선택된 AGV에 실시간 장애가 주입되어 <strong>사전 감지(PRE_WARNING) → 단절(DISCONNECTED) → 복구</strong>가 재현됩니다.</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Sub-Card 2: Live AGV Fleet Status Table -->
+          <article class="card" id="panel-agv-table" style="padding:16px 20px;">
+            <div class="card-header" style="margin-bottom:8px;">
+              <div class="card-title-group">
+                <span class="title-accent-bar"></span>
+                <h2 class="text-h2">AGV 실시간 상태 테이블 (1s 로컬 링버퍼 &amp; 30s 보고)</h2>
+              </div>
+              <span class="text-caption">클릭 시 하단 스트림 연동</span>
+            </div>
+
+            <div class="table-responsive">
+              <table class="telemetry-table" aria-label="AGV 플릿 실시간 텔레메트리 테이블">
+                <thead>
+                  <tr>
+                    <th class="text-left">AGV ID</th>
+                    <th class="text-center">연결 AP</th>
+                    <th class="text-right">RSSI</th>
+                    <th class="text-right">SNR</th>
+                    <th class="text-right">GW RTT</th>
+                    <th class="text-right">재전송</th>
+                    <th class="text-right">위험도</th>
+                    <th class="text-center">상태 (30s 보고)</th>
+                  </tr>
+                </thead>
+                <tbody id="fleet-table-body">
+                  <!-- Populated dynamically every 1s by app.js -->
+                  <tr class="selected-row" data-agv="AGV-02">
+                    <td class="text-left mono"><strong>AGV-02</strong></td>
+                    <td class="text-center mono">ZONE-A</td>
+                    <td class="text-right num">-61.0 dBm</td>
+                    <td class="text-right num">31.0 dB</td>
+                    <td class="text-right num">4.2 ms</td>
+                    <td class="text-right num">0 /s</td>
+                    <td class="text-right num"><span class="color-ok">12.0</span></td>
+                    <td class="text-center"><span class="badge badge-ok">CONNECTED</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <!-- Sub-Card 3: Selected AGV Real-Time 1s Stream Mini Chart -->
+          <article class="card" id="panel-agv-minichart" style="padding:16px 20px; flex:1;">
+            <div class="card-header" style="margin-bottom:8px;">
+              <div class="card-title-group">
+                <span class="title-accent-bar indigo"></span>
+                <h2 class="text-h2" id="selected-agv-chart-title">AGV-02 실시간 1초 시계열 &amp; 30초 보고 마커 (최근 180s)</h2>
+              </div>
+              <div style="display:flex; gap:8px; font-size:0.7rem;">
+                <span class="color-accent">━ RSSI (dBm)</span>
+                <span class="color-warn">━ Risk Score (0~100)</span>
+                <span class="color-ok">● 30s 보고</span>
+              </div>
+            </div>
+            <div class="mini-chart-box">
+              <canvas id="live-mini-chart" width="580" height="155"></canvas>
+            </div>
+          </article>
+
+        </div>
+      </div>
+
+      <!-- Row 3: Recent 30s Piggyback Reports & Recent Pre-Detection / RCA Incident Log -->
+      <div class="grid-12">
+        <!-- Left 6 Cols: Recent 30s ACS Socket Reports with Piggyback Summary -->
+        <article class="card col-span-6" id="panel-recent-reports">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="title-accent-bar ok"></span>
+              <h2 class="text-h2">최근 30초 ACS 상태 보고 &amp; 통계 피기백(Piggyback) 스트림</h2>
+            </div>
+            <span class="badge badge-ok">Stage 2 • 30s Piggyback</span>
+          </div>
+          <div class="table-responsive">
+            <table class="telemetry-table">
+              <thead>
+                <tr>
+                  <th class="text-left">수신 시각</th>
+                  <th class="text-left">AGV ID</th>
+                  <th class="text-center">보고 상태</th>
+                  <th class="text-right">보고 간격</th>
+                  <th class="text-right">30s 최저 RSSI</th>
+                  <th class="text-right">TCP 재전송 합계</th>
+                  <th class="text-right">최대 위험도</th>
+                </tr>
+              </thead>
+              <tbody id="recent-reports-tbody">
+                <!-- Populated by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <!-- Right 6 Cols: Recent Pre-Detection & Post-Mortem RCA Incidents -->
+        <article class="card col-span-6" id="panel-recent-incidents">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="title-accent-bar crit"></span>
+              <h2 class="text-h2">사전 감지 조기 경보 &amp; 사후 원인 분석(RCA) 리포트 이력</h2>
+            </div>
+            <span class="badge badge-warn">클릭 시 RCA 랩에서 파형 분석</span>
+          </div>
+          <div class="table-responsive">
+            <table class="telemetry-table">
+              <thead>
+                <tr>
+                  <th class="text-left">사건 ID</th>
+                  <th class="text-left">대상 AGV</th>
+                  <th class="text-center">시나리오</th>
+                  <th class="text-left">자동 판별 근본 원인</th>
+                  <th class="text-right">사전감지 선행시간</th>
+                  <th class="text-center">분석 보기</th>
+                </tr>
+              </thead>
+              <tbody id="recent-incidents-tbody">
+                <!-- Populated by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+
+    </section>
+
+    <!-- ==================================================================
+         TAB 2: 사전 감지 & 사후 원인 분석 랩 (Pre-Detection & RCA Lab)
+         ================================================================== -->
+    <section class="tab-view" id="tab-rca" role="tabpanel">
+
+      <!-- Row 1: 4 Failure Scenario Selector Cards -->
+      <div class="grid-12" id="rca-scenario-cards">
+        <article class="card scenario-selector-card col-span-3 active" data-scn-card="SCN-01">
+          <div class="card-header" style="margin-bottom:6px;">
+            <span class="badge badge-crit mono">SCN-01</span>
+            <span class="badge badge-warn mono">단절 18초 전 감지</span>
+          </div>
+          <h3 class="text-h2" style="margin-bottom:4px;">AP 로밍 실패 (Sticky Client)</h3>
+          <p class="text-caption">이동 중 기존 AP(-81dBm)를 놓지 못해 802.1X 재인증 지연(340ms) 및 비콘 유실로 소켓 끊김</p>
+        </article>
+
+        <article class="card scenario-selector-card col-span-3" data-scn-card="SCN-02">
+          <div class="card-header" style="margin-bottom:6px;">
+            <span class="badge badge-crit mono">SCN-02</span>
+            <span class="badge badge-warn mono">단절 16초 전 감지</span>
+          </div>
+          <h3 class="text-h2" style="margin-bottom:4px;">물리적 음영 &amp; 용접 EMI 간섭</h3>
+          <p class="text-caption">철제 랙 구역 진입 및 고주파 용접 노이즈(-79dBm) 유입으로 SNR 10dB 급락·L2 재전송 폭증</p>
+        </article>
+
+        <article class="card scenario-selector-card col-span-3" data-scn-card="SCN-03">
+          <div class="card-header" style="margin-bottom:6px;">
+            <span class="badge badge-crit mono">SCN-03</span>
+            <span class="badge badge-warn mono">단절 15초 전 감지</span>
+          </div>
+          <h3 class="text-h2" style="margin-bottom:4px;">AP 과부하 &amp; 동일 채널 혼잡</h3>
+          <p class="text-caption">신호 세기(-60dBm)는 정상이나 채널 점유율(CCA 84%) 포화로 GW RTT 및 지터가 치솟아 단절</p>
+        </article>
+
+        <article class="card scenario-selector-card col-span-3" data-scn-card="SCN-04">
+          <div class="card-header" style="margin-bottom:6px;">
+            <span class="badge badge-crit mono">SCN-04</span>
+            <span class="badge badge-warn mono">단절 14초 전 감지</span>
+          </div>
+          <h3 class="text-h2" style="margin-bottom:4px;">AGV/ACS 소켓 블로킹 (Hang)</h3>
+          <p class="text-caption">무선(RSSI/RTT)은 완벽히 정상이나 AGV SLAM CPU(96%) 폭주 및 Recv-Q 적체로 30초 보고 타임아웃</p>
+        </article>
+      </div>
+
+      <!-- Row 2: Interactive Timeline Playback Bar & Legacy 30s vs Hybrid 1s Comparison -->
+      <div class="grid-12">
+        <article class="card col-span-12" id="panel-rca-playback">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="title-accent-bar warn"></span>
+              <h2 class="text-h2" id="rca-lab-header-title">[SCN-01] AP 로밍 실패 — 30초 주기 보고 사각지대 vs 1초 하이브리드 사전 감지 타임라인 비교</h2>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button class="btn btn-sm" data-jump="-60" type="button">T-60s (정상)</button>
+              <button class="btn btn-sm btn-warn" id="btn-jump-predetect" data-jump="-18" type="button">T-18s (사전감지 경보!)</button>
+              <button class="btn btn-sm btn-crit" data-jump="0" type="button">T=0s (30초 소켓 단절!)</button>
+              <button class="btn btn-sm btn-ok" data-jump="18" type="button">T+18s (재연결 &amp; 블랙박스 덤프)</button>
+            </div>
+          </div>
+
+          <!-- Interactive Scrubber Control Bar -->
+          <div class="playback-control-bar">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button class="btn btn-primary" id="btn-rca-play" type="button">▶ 타임라인 재생</button>
+              <button class="btn" id="btn-rca-reset-cursor" type="button">⟲ T-89s로 이동</button>
+            </div>
+            <div class="slider-wrapper">
+              <input type="range" class="time-slider" id="rca-time-slider" min="-89" max="30" step="1" value="-18" aria-label="사건 전후 타임라인 슬라이더 (-89초 ~ +30초)" />
+              <div class="slider-ticks mono">
+                <span>T-89s (정상 주행)</span>
+                <span>T-60s (30s 보고 OK)</span>
+                <span>T-30s (30s 보고 OK)</span>
+                <span class="color-warn">★ T-18s (사전 감지!)</span>
+                <span class="color-crit">✖ T=0s (30s 보고 단절!)</span>
+                <span class="color-ok">T+30s (복구 완료)</span>
+              </div>
+            </div>
+            <div class="badge badge-sky mono" style="font-size:0.85rem; padding:6px 12px;" id="rca-current-time-badge">
+              현재 커서: T-18s (사전 감지 시점)
+            </div>
+          </div>
+
+          <!-- Legacy 30s vs Proposed Hybrid 1s Direct Comparison Boxes -->
+          <div class="comparison-dual-grid">
+            <div class="comparison-box legacy">
+              <div class="comp-box-header">
+                <span class="color-crit">❌ 기존 30초 주기 소켓 보고 관점 (Legacy 30s Socket Polling)</span>
+                <span class="badge badge-crit">사전 감지 불가 / 원인 불명</span>
+              </div>
+              <p class="text-body" id="rca-legacy-desc">
+                T-30초 시점 보고에서는 정상 수준으로 보고되었으나, 이후 30초 사이에 발생한 급격한 지표 악화를 전혀 인지하지 못하고 T=0초에 갑작스러운 Socket Timeout(단절)을 맞이하므로 원인을 알 수 없습니다.
+              </p>
+            </div>
+            <div class="comparison-box hybrid">
+              <div class="comp-box-header">
+                <span class="color-ok">✅ 제안 하이브리드 1초 수집 + 사전 감지 관점 (Hybrid 1s + Piggyback)</span>
+                <span class="badge badge-ok" id="rca-hybrid-lead-badge">단절 18초 전 조기 경보 발령!</span>
+              </div>
+              <p class="text-body" id="rca-hybrid-desc">
+                AGV 로컬 1초 링버퍼가 지표 기울기와 재전송 급증을 실시간 추적하여 30초 소켓이 끊어지기 18초 전(T-18s)에 EWMA 위험도 70점을 돌파, ACS로 즉시 조기 경보를 푸시하고 재연결 후 120초 블랙박스 덤프로 원인을 100% 규명합니다.
+              </p>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <!-- Row 3: Left 8 Cols (3-Layer Synchronized Multi-Metric Charts) + Right 4 Cols (Automated RCA Decision Tree) -->
+      <div class="grid-12">
+        <!-- Left 8 Cols: 3-Layer Synchronized Multi-Metric Time-Series Charts -->
+        <article class="card col-span-8" id="panel-rca-charts">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="title-accent-bar"></span>
+              <h2 class="text-h2">3계층 동기화 고해상도 시계열 파형 (1초 링버퍼 블랙박스 데이터: T-89s ~ T+30s)</h2>
+            </div>
+            <span class="text-caption mono" id="rca-cursor-annotation">차트 위를 드래그하거나 클릭하여 시점별 18개 지표를 정밀 검사하세요</span>
+          </div>
+
+          <div class="sync-charts-stack">
+            <!-- Chart Layer 1: L1/L2 Wireless Physical & MAC -->
+            <div class="sync-chart-layer">
+              <div class="layer-caption-bar">
+                <span class="layer-title">Layer 1 — L1/L2 무선 물리·MAC 계층 (Wi-Fi RF &amp; 802.11 MAC)</span>
+                <div class="layer-legend mono">
+                  <span style="color:#38BDF8;">━ RSSI (dBm)</span>
+                  <span style="color:#10B981;">━ SNR (dB)</span>
+                  <span style="color:#F59E0B;">━ Channel Util (%)</span>
+                  <span style="color:#F43F5E;">┅ L2 Retry (%)</span>
+                </div>
+              </div>
+              <canvas class="sync-canvas" id="rca-chart-l1" width="960" height="148"></canvas>
+            </div>
+
+            <!-- Chart Layer 2: L3/L4 Network & Transport -->
+            <div class="sync-chart-layer">
+              <div class="layer-caption-bar">
+                <span class="layer-title">Layer 2 — L3/L4 네트워크·전송 계층 (ICMP RTT &amp; TCP Socket Buffers)</span>
+                <div class="layer-legend mono">
+                  <span style="color:#38BDF8;">━ Gateway RTT (ms)</span>
+                  <span style="color:#F43F5E;">■ TCP Retransmits (/s)</span>
+                  <span style="color:#F59E0B;">━ Send-Q (KB)</span>
+                  <span style="color:#818CF8;">━ Recv-Q (KB)</span>
+                </div>
+              </div>
+              <canvas class="sync-canvas" id="rca-chart-l2" width="960" height="148"></canvas>
+            </div>
+
+            <!-- Chart Layer 3: Pre-Detection Risk Score vs 30s ACS Report Markers -->
+            <div class="sync-chart-layer">
+              <div class="layer-caption-bar">
+                <span class="layer-title">Layer 3 — 사전 감지 위험도 스코어 (EWMA 0~100) vs 30초 주기 ACS 소켓 보고 시점</span>
+                <div class="layer-legend mono">
+                  <span style="color:#818CF8;">━ Pre-Detection Risk Score</span>
+                  <span style="color:#F59E0B;">┆ T-Lead 사전 감지 경보선 (Risk ≥ 70)</span>
+                  <span style="color:#F43F5E;">┃ T=0s 30초 보고 타임아웃 단절</span>
+                  <span style="color:#10B981;">● 30s 정기 보고</span>
+                </div>
+              </div>
+              <canvas class="sync-canvas" id="rca-chart-l3" width="960" height="148"></canvas>
+            </div>
+          </div>
+
+          <!-- Instant Telemetry Snapshot Strip at Selected Cursor Offset -->
+          <div class="cursor-snapshot-strip mono" id="rca-snapshot-strip">
+            <div class="snap-cell"><span class="snap-label">시점 (Offset)</span><span class="snap-val color-accent" id="snap-offset">T-18s</span></div>
+            <div class="snap-cell"><span class="snap-label">RSSI / SNR</span><span class="snap-val" id="snap-rf">-76 dBm / 16 dB</span></div>
+            <div class="snap-cell"><span class="snap-label">Ch.Util / L2재전송</span><span class="snap-val" id="snap-mac">38% / 24%</span></div>
+            <div class="snap-cell"><span class="snap-label">로밍 지연</span><span class="snap-val" id="snap-roam">0 ms</span></div>
+            <div class="snap-cell"><span class="snap-label">GW RTT / Jitter</span><span class="snap-val" id="snap-rtt">48 ms / 19 ms</span></div>
+            <div class="snap-cell"><span class="snap-label">TCP 재전송</span><span class="snap-val" id="snap-retrans">4 /s</span></div>
+            <div class="snap-cell"><span class="snap-label">Send-Q / Recv-Q</span><span class="snap-val" id="snap-queues">6.4 KB / 0 B</span></div>
+            <div class="snap-cell"><span class="snap-label">위험도 (상태)</span><span class="snap-val color-warn" id="snap-risk">74.5 (WARNING)</span></div>
+          </div>
+        </article>
+
+        <!-- Right 4 Cols: Automated RCA Decision Tree & Remediation Panel -->
+        <article class="card col-span-4" id="panel-rca-decision">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="title-accent-bar crit"></span>
+              <h2 class="text-h2">자동 사후 원인 분석 (Automated RCA)</h2>
+            </div>
+            <span class="badge badge-crit mono" id="rca-verdict-code">SCN-01 판정</span>
+          </div>
+
+          <!-- Root Cause Verdict Banner -->
+          <div class="rca-verdict-banner">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span class="text-h3 color-crit" id="rca-verdict-title">AP 로밍 실패 및 Sticky Client 현상</span>
+              <span class="badge badge-warn mono" id="rca-verdict-lead">T-18s 조기 감지</span>
+            </div>
+            <p class="text-body" style="font-size:0.78rem;" id="rca-verdict-summary">
+              AGV 이동 중 신호가 -78dBm 이하로 감쇠되었으나 기존 AP를 고집(Sticky Client)하다 뒤늦게 핸드오버를 시도하며 340ms 인증 지연이 발생해 소켓이 끊어졌습니다.
+            </p>
+          </div>
+
+          <!-- 4-Step Automated Diagnostic Checklist -->
+          <h3 class="text-h3" style="margin-bottom:8px;">단계별 의사결정 트리 (RCA Decision Tree)</h3>
+          <div class="decision-steps-list" id="rca-decision-steps">
+            <!-- Populated by app.js -->
+          </div>
+
+          <!-- Key Metric Signature Evidence Pills -->
+          <h3 class="text-h3" style="margin-bottom:6px;">핵심 시계열 증거 지표 (Signature Evidence)</h3>
+          <div class="evidence-pills-wrap mono" id="rca-signature-pills">
+            <!-- Populated by app.js -->
+          </div>
+
+          <!-- Recommended Engineering Actions -->
+          <h3 class="text-h3" style="margin-bottom:6px;">권장 엔지니어링 조치 방안 (Remediation)</h3>
+          <ul class="remediation-list" id="rca-remediation-list">
+            <!-- Populated by app.js -->
+          </ul>
+        </article>
+      </div>
+
+    </section>
+
+    <!-- ==================================================================
+         TAB 3: 수집 항목 백과사전 (Telemetry Metrics Spec — All 18 Metrics)
+         ================================================================== -->
+    <section class="tab-view" id="tab-catalog" role="tabpanel">
+
+      <!-- Row 1: Layer & Location Filter Bar + Search -->
+      <div class="grid-12">
+        <article class="card col-span-12" id="panel-catalog-filter" style="padding:14px 20px;">
+          <div class="catalog-filter-bar">
+            <div class="filter-btn-group" id="catalog-layer-filters" role="group" aria-label="계층별 필터">
+              <button class="filter-pill active" data-layer="ALL" type="button">전체 수집 항목 (18종)</button>
+              <button class="filter-pill" data-layer="L1_L2" type="button">L1/L2 무선 물리·MAC (8종)</button>
+              <button class="filter-pill" data-layer="L3_L4" type="button">L3/L4 네트워크·전송 (6종)</button>
+              <button class="filter-pill" data-layer="L7_SYS" type="button">L7 응용·시스템 (4종)</button>
+            </div>
+
+            <div class="filter-btn-group" id="catalog-loc-filters" role="group" aria-label="수집 위치별 필터">
+              <button class="filter-pill active" data-loc="ALL" type="button">전체 위치</button>
+              <button class="filter-pill" data-loc="AGV/AMR" type="button">AGV/AMR 온보드</button>
+              <button class="filter-pill" data-loc="AP/WLC" type="button">무선 인프라 (AP/WLC)</button>
+              <button class="filter-pill" data-loc="ACS" type="button">상위 시스템 (ACS Server)</button>
+            </div>
+
+            <input type="search" id="catalog-search-input" class="search-input" placeholder="지표명(RSSI, SNR, Send-Q), 명령어(nl80211, ss -ti) 검색..." aria-label="수집 지표 검색" />
+          </div>
+        </article>
+      </div>
+
+      <!-- Row 2: Left 7 Cols (18-Metric Structured Table) + Right 5 Cols (8-Point Deep Specification Inspector) -->
+      <div class="grid-12">
+        <!-- Left 7 Cols: Master Table -->
+        <article class="card col-span-7" id="panel-catalog-table">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="title-accent-bar"></span>
+              <h2 class="text-h2">AGV/AMR–ACS 무선 네트워크 수집 항목 일람표 (<span id="catalog-count-label">18</span>종)</h2>
+            </div>
+            <span class="text-caption">행을 클릭하면 우측에 8대 필수 명세 상세 표시</span>
+          </div>
+
+          <div class="table-responsive" style="max-height:680px; overflow-y:auto;">
+            <table class="telemetry-table" aria-label="18종 네트워크 수집 지표 명세 테이블">
+              <thead>
+                <tr>
+                  <th class="text-center">ID</th>
+                  <th class="text-center">계층</th>
+                  <th class="text-left">① 수집 항목명 (국문 / 영문)</th>
+                  <th class="text-right">③ 단위 / 위험 임계치</th>
+                  <th class="text-center">④ 수집 위치</th>
+                  <th class="text-center">⑤ 권장 주기</th>
+                  <th class="text-center">⑥ 수집 부하</th>
+                </tr>
+              </thead>
+              <tbody id="catalog-table-body">
+                <!-- Populated by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <!-- Right 5 Cols: Rich 8-Requirement Inspector Panel -->
+        <article class="card col-span-5" id="panel-catalog-detail">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="title-accent-bar indigo"></span>
+              <h2 class="text-h2">수집 항목 8대 필수 명세 인스펙터</h2>
+            </div>
+            <span class="badge badge-sky mono" id="detail-metric-id">M01 • RSSI</span>
+          </div>
+
+          <div class="metric-detail-grid" id="metric-detail-inspector">
+            <!-- Populated dynamically with all 8 required items by app.js -->
+          </div>
+        </article>
+      </div>
+
+      <!-- Row 3: All 18 Metrics Full Encyclopedia Cards Grid -->
+      <div class="grid-12">
+        <article class="card col-span-12">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="title-accent-bar ok"></span>
+              <h2 class="text-h2">전체 수집 항목 카드 카탈로그 (한눈에 보는 18대 지표 명세 &amp; 활용 가이드)</h2>
+            </div>
+            <span class="text-caption">카드를 클릭하면 상단 상세 코드 인스펙터로 포커스됩니다</span>
+          </div>
+          <div class="metrics-full-grid" id="catalog-cards-grid">
+            <!-- Populated by app.js -->
+          </div>
+        </article>
+      </div>
+
+    </section>
+
+    <!-- ==================================================================
+         TAB 4: 하이브리드 수집 아키텍처 (Hybrid Architecture & Protocol)
+         ================================================================== -->
+    <section class="tab-view" id="tab-arch" role="tabpanel">
+
+      <!-- Row 1: Why 30s Reporting Fails & 3-Stage Hybrid Telemetry Pipeline -->
+      <div class="grid-12">
+        <article class="card col-span-12" id="panel-arch-pipeline">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="title-accent-bar"></span>
+              <h2 class="text-h2">기존 30초 소켓 보고의 구조적 한계와 3단계 하이브리드 수집 아키텍처 (Hybrid Telemetry Pipeline)</h2>
+            </div>
+            <span class="badge badge-ok">네트워크 부하 &lt; 45 bps/AGV • CPU 부하 &lt; 0.2%</span>
+          </div>
+
+          <p class="text-body" style="margin-bottom:12px;">
+            AGV 전체 플릿이 매 1초마다 모든 무선/소켓 지표를 ACS로 실시간 전송하면 무선 채널 경쟁(Contention)과 ACS 소켓 처리 부하가 증가합니다.
+            반면 기존처럼 <strong>30초 주기로만 보고하면 29.9초의 사각지대(Blind Spot)</strong>가 발생합니다. 이를 완벽히 해결하는 <strong>3단계 하이브리드 수집 모델</strong>입니다.
+          </p>
+
+          <div class="arch-pipeline-grid">
+            <!-- Stage 1 -->
+            <div class="arch-stage-card stage-1">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="badge badge-sky mono">STAGE 1 • 1s Local Ring Buffer</span>
+                <span class="text-caption mono">무선 트래픽 0 Byte</span>
+              </div>
+              <h3 class="text-h2">AGV 온보드 1초 고주파 링버퍼 수집</h3>
+              <p class="text-body">
+                AGV 내부 데몬이 Linux 커널 인터페이스(<code>/proc/net/wireless</code>, <code>nl80211</code>, <code>NETLINK_INET_DIAG tcp_info</code>)에서 <strong>1초마다 18개 지표를 메모리 링버퍼(최근 5분, 144KB)</strong>에 기록합니다.
+              </p>
+              <div class="detail-section-box mono" style="font-size:0.74rem;">
+                <div>• 수집 주기: <strong>1.0초 (고해상도)</strong></div>
+                <div>• AGV CPU 부하: <strong>0.14% 미만 (커널 구조체 직접 읽기)</strong></div>
+                <div>• 평시 무선 전송: <strong>없음 (로컬 메모리 순환 보관)</strong></div>
+              </div>
+            </div>
+
+            <!-- Stage 2 -->
+            <div class="arch-stage-card stage-2">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="badge badge-ok mono">STAGE 2 • 30s Statistical Piggyback</span>
+                <span class="text-caption mono">+96 Bytes / 30s</span>
+              </div>
+              <h3 class="text-h2">평시 30초 ACS 상태 보고에 통계 요약 피기백</h3>
+              <p class="text-body">
+                별도의 모니터링 소켓을 열지 않고, <strong>기존 30초 주기 ACS 상태 보고 TCP 패킷 끝에 지난 30초간의 핵심 통계 요약(`min/avg/max/delta`) 블록</strong>만 피기백(첨부)하여 전송합니다.
+              </p>
+              <div class="detail-section-box mono" style="font-size:0.74rem;">
+                <div>• 포함 지표: <code>rssi_min/avg</code>, <code>snr_min</code>, <code>l2_retry_max</code>, <code>tcp_retrans_sum</code>, <code>gw_rtt_max</code>, <code>risk_max</code></div>
+                <div>• 대역폭 오버헤드: <strong>약 25.6 bps/AGV (무시 가능 수준)</strong></div>
+                <div>• 활용: 공장 전역 음영 히트맵 및 장기 추세 분석</div>
+              </div>
+            </div>
+
+            <!-- Stage 3 -->
+            <div class="arch-stage-card stage-3">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <span class="badge badge-warn mono">STAGE 3 • Early Warning &amp; Blackbox Dump</span>
+                <span class="text-caption mono">이벤트 트리거</span>
+              </div>
+              <h3 class="text-h2">조기 경보 푸시(T-18s) &amp; 재연결 블랙박스 덤프</h3>
+              <p class="text-body">
+                1초 로컬 감시 중 <strong>EWMA 위험도 ≥ 70점 도달 시 30초 주기를 기다리지 않고 즉시 경량 조기 경보 패킷을 푸시</strong>합니다. 만약 단절 후 재연결되면 단절 전후 <strong>±60초(120초) 1초 파형 덤프</strong>를 전송합니다.
+              </p>
+              <div class="detail-section-box mono" style="font-size:0.74rem;">
+                <div>• 사전 감지 선행 시간: <strong>단절 평균 14~18초 전 경보</strong></div>
+                <div>• 제어 연동: <strong>AGV 감속 / 대기 / 802.11v 선제 로밍 명령</strong></div>
+                <div>• 사후 분석: <strong>4대 장애 시나리오 100% 자동 판별</strong></div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <!-- Row 2: Left 6 Cols (Protocol JSON Packet Inspector) + Right 6 Cols (Fleet Bandwidth & Overhead Calculator) -->
+      <div class="grid-12">
+        <!-- Left 6 Cols: Protocol JSON Payload Inspector -->
+        <article class="card col-span-6" id="panel-arch-json">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="title-accent-bar indigo"></span>
+              <h2 class="text-h2">실제 프로토콜 패킷 규격 인스펙터 (JSON Schema)</h2>
+            </div>
+            <div style="display:flex; gap:6px;" id="arch-packet-tabs">
+              <button class="btn btn-sm active-pkt btn-primary" data-pkt="piggyback" type="button">30s 피기백 패킷</button>
+              <button class="btn btn-sm" data-pkt="early_warning" type="button">조기 경보 푸시</button>
+              <button class="btn btn-sm" data-pkt="blackbox_dump" type="button">사후 블랙박스 덤프</button>
+            </div>
+          </div>
+
+          <p class="text-caption" id="arch-pkt-desc" style="margin-bottom:6px;">
+            기존 30초 ACS 상태 보고 JSON 페이로드에 `net_telemetry_30s` 요약 객체(약 96~128 Bytes)를 피기백한 실제 패킷 구조입니다.
+          </p>
+          <pre class="code-snippet-box mono" id="arch-json-viewer" style="height:360px; margin-top:0;"></pre>
+        </article>
+
+        <!-- Right 6 Cols: Interactive Fleet Bandwidth & Storage Overhead Estimator -->
+        <article class="card col-span-6" id="panel-arch-calculator">
+          <div class="card-header">
+            <div class="card-title-group">
+              <span class="title-accent-bar ok"></span>
+              <h2 class="text-h2">AGV 플릿 수집 부하 및 네트워크 대역폭 계산기</h2>
+            </div>
+            <span class="badge badge-sky">실시간 시뮬레이션</span>
+          </div>
+
+          <div class="calc-form-group">
+            <div style="display:flex; justify-content:space-between;" class="text-h3">
+              <label for="calc-agv-count">공장 내 동시 운행 AGV/AMR 대수</label>
+              <span class="mono color-accent" id="calc-agv-count-val">25 대</span>
+            </div>
+            <input type="range" class="time-slider" id="calc-agv-count" min="1" max="100" value="25" />
+            <div class="slider-ticks mono"><span>1대</span><span>25대</span><span>50대</span><span>75대</span><span>100대</span></div>
+          </div>
+
+          <div class="calc-form-group">
+            <div style="display:flex; justify-content:space-between;" class="text-h3">
+              <label for="calc-ring-sec">AGV 로컬 링버퍼 보관 시간 (1초 주기 기준)</label>
+              <span class="mono color-accent" id="calc-ring-sec-val">300 초 (5분)</span>
+            </div>
+            <input type="range" class="time-slider" id="calc-ring-sec" min="120" max="600" step="60" value="300" />
+            <div class="slider-ticks mono"><span>120초 (2분)</span><span>300초 (5분 권장)</span><span>600초 (10분)</span></div>
+          </div>
+
+          <div class="calc-result-grid mono">
+            <div class="calc-stat-box">
+              <div class="text-caption">AGV 1대당 온보드 CPU 점유율</div>
+              <div class="kpi-hero-value color-ok" style="font-size:1.35rem;" id="calc-out-cpu">0.14 %</div>
+              <div class="text-caption">/proc &amp; netlink 메모리 읽기 (부하 무영향)</div>
+            </div>
+            <div class="calc-stat-box">
+              <div class="text-caption">AGV 1대당 로컬 RAM 링버퍼 크기</div>
+              <div class="kpi-hero-value color-accent" style="font-size:1.35rem;" id="calc-out-ram">144.0 KB</div>
+              <div class="text-caption">고정 크기 순환 배열 (메모리 누수 0%)</div>
+            </div>
+            <div class="calc-stat-box">
+              <div class="text-caption">전체 플릿 평시 무선 대역폭 (30s 피기백)</div>
+              <div class="kpi-hero-value color-ok" style="font-size:1.35rem;" id="calc-out-bw">0.80 kbps</div>
+              <div class="text-caption" id="calc-out-bw-saving">1초 전체 원시 전송 대비 98.4% 대역폭 절감</div>
+            </div>
+            <div class="calc-stat-box">
+              <div class="text-caption">ACS TSDB 일일 예상 저장 용량</div>
+              <div class="kpi-hero-value color-indigo" style="font-size:1.35rem;" id="calc-out-disk">22.4 MB/일</div>
+              <div class="text-caption">30s 요약 상시 보관 + 단절 블랙박스 덤프</div>
+            </div>
+          </div>
+
+          <!-- Architecture Comparison Mini Table -->
+          <div class="table-responsive" style="margin-top:12px;">
+            <table class="telemetry-table">
+              <thead>
+                <tr>
+                  <th class="text-left">수집 방식 비교</th>
+                  <th class="text-center">사전 감지</th>
+                  <th class="text-center">사후 원인 분석</th>
+                  <th class="text-right">무선 대역폭 부하</th>
+                  <th class="text-center">종합 평가</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="text-left">기존 30초 소켓 단순 보고</td>
+                  <td class="text-center"><span class="badge badge-crit">불가 (29.9s 공백)</span></td>
+                  <td class="text-center"><span class="badge badge-crit">불가 (블랙박스)</span></td>
+                  <td class="text-right mono">매우 낮음</td>
+                  <td class="text-center"><span class="badge badge-crit">부적합</span></td>
+                </tr>
+                <tr>
+                  <td class="text-left">1초 원시 데이터 상시 중앙 전송</td>
+                  <td class="text-center"><span class="badge badge-ok">가능</span></td>
+                  <td class="text-center"><span class="badge badge-ok">가능</span></td>
+                  <td class="text-right mono color-warn">높음 (무선 혼잡 유발)</td>
+                  <td class="text-center"><span class="badge badge-warn">비효율</span></td>
+                </tr>
+                <tr class="selected-row">
+                  <td class="text-left"><strong>제안 3단계 하이브리드 수집</strong></td>
+                  <td class="text-center"><span class="badge badge-ok">단절 18초 전 감지</span></td>
+                  <td class="text-center"><span class="badge badge-ok">1초 해상도 완벽 분석</span></td>
+                  <td class="text-right mono color-ok">초저부하 (&lt;32 bps/대)</td>
+                  <td class="text-center"><span class="badge badge-ok">최적 아키텍처</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ====================================================================
+       INTERACTIVE SPOTLIGHT TOUR GUIDE OVERLAY & POPOVER (7 Steps)
+       ==================================================================== -->
+  <div class="tour-backdrop" id="tour-backdrop" aria-hidden="true"></div>
+  <div class="tour-spotlight-ring" id="tour-spotlight-ring" aria-hidden="true"></div>
+
+  <aside class="tour-popover" id="tour-popover" role="dialog" aria-modal="false" aria-labelledby="tour-step-title">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <span class="badge badge-sky mono" id="tour-step-badge">STEP 1 / 7</span>
+      <div class="tour-step-dots" id="tour-step-dots"></div>
+      <button class="btn btn-sm" id="btn-tour-close" type="button">✕ 종료</button>
+    </div>
+    <h3 class="text-h2" id="tour-step-title" style="margin-bottom:8px;">투어 가이드 제목</h3>
+    <p class="text-body" id="tour-step-body" style="margin-bottom:12px;">투어 가이드 본문 설명</p>
+    <div class="detail-section-box" style="margin-bottom:14px; border-left:3px solid var(--accent-primary);">
+      <div class="text-caption color-accent" style="font-weight:700; margin-bottom:2px;">💡 발표자 핵심 설명 포인트 (Key Takeaway)</div>
+      <div class="text-caption" style="color:var(--text-primary);" id="tour-step-takeaway">핵심 요약</div>
+    </div>
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <button class="btn" id="btn-tour-prev" type="button">← 이전 단계</button>
+      <button class="btn btn-primary" id="btn-tour-next" type="button">다음 단계 →</button>
+    </div>
+  </aside>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

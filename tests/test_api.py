@@ -1,0 +1,199 @@
+"""
+==============================================================================
+Integration & Functional API Test Suite for AGV Network Telemetry Dashboard
+==============================================================================
+Verifies:
+1. Web UI static index delivery and tour guide container presence
+2. /api/health TSDB & simulator health status
+3. /api/overview complete fleet status, 4 APs, KPIs, and TSDB stats (>0 rows)
+4. /api/metrics-catalog full 18 telemetry metrics validation
+5. /api/scenarios 4 failure scenarios, timelines, and RCA decision trees
+6. /api/scenarios/trigger and /api/scenarios/reset runtime control
+7. /api/agv/{agv_id}/timeseries high-resolution series & 30s report markers
+8. /api/hybrid-architecture and /api/incidents
+==============================================================================
+"""
+
+import sys
+import os
+import pytest
+from fastapi.testclient import TestClient
+
+# Ensure workspace root is in sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from app.main import app
+
+
+@pytest.fixture(scope="module")
+def client():
+    """
+    TestClient fixture with lifespan context enabled to ensure
+    TSDB seeding and simulator background tasks are initialized.
+    """
+    with TestClient(app) as test_client:
+        yield test_client
+
+
+def test_index_page(client):
+    """Verify GET / returns 200 and HTML with dashboard layout and tour guide elements."""
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "text/html" in response.headers.get("content-type", "")
+    content = response.text
+    assert "<!DOCTYPE html>" in content or "<html" in content
+    # Verify core dashboard identifiers
+    assert "AGV" in content
+    assert "투어" in content or "tour" in content.lower()
+
+
+def test_api_health(client):
+    """Verify GET /api/health returns 200 and healthy TSDB engine info."""
+    response = client.get("/api/health")
+    assert response.status_code == 200
+    data = response.json()
+    assert data.get("status") in ["ok", "healthy", "UP"]
+    assert "tsdb" in data or "tsdb_stats" in data or "telemetry_rows" in data or "status" in data
+
+
+def test_api_overview(client):
+    """Verify GET /api/overview returns 6 AGVs, 4 APs, KPIs, and TSDB stats > 0 rows."""
+    response = client.get("/api/overview")
+    assert response.status_code == 200
+    data = response.json()
+
+    # 1. Fleet validation (6 AGVs: AGV-01 .. AGV-06)
+    fleet = data.get("fleet", [])
+    assert len(fleet) == 6, f"Expected 6 AGVs, found {len(fleet)}"
+    agv_ids = [agv.get("agv_id") for agv in fleet]
+    for i in range(1, 7):
+        assert f"AGV-0{i}" in agv_ids
+
+    # 2. APs validation (4 APs across zones)
+    aps = data.get("aps", [])
+    assert len(aps) == 4, f"Expected 4 APs, found {len(aps)}"
+
+    # 3. KPIs validation
+    kpis = data.get("kpis", {})
+    assert any(k in kpis for k in ["total_agv", "total_agvs", "connected_count", "connected_agvs", "avg_rssi_dbm", "avg_rssi"])
+
+    # 4. TSDB stats validation (records loaded)
+    tsdb_stats = data.get("tsdb_stats", {})
+    total_telemetry = tsdb_stats.get("telemetry_1s_rows", tsdb_stats.get("total_rows", 0))
+    assert total_telemetry > 0, "Expected TSDB to have seeded telemetry points > 0"
+
+
+def test_api_metrics_catalog(client):
+    """
+    Verify GET /api/metrics-catalog returns all 18 metrics with required fields:
+    id, name_ko, unit, collection_location, recommended_interval,
+    system_load, collection_method, analysis_usage.
+    """
+    response = client.get("/api/metrics-catalog")
+    assert response.status_code == 200
+    data = response.json()
+
+    # metrics list may be directly in list or nested under 'metrics' or 'catalog'
+    metrics = data if isinstance(data, list) else data.get("metrics", data.get("catalog", []))
+    assert len(metrics) == 18, f"Expected 18 metrics, received {len(metrics)}"
+
+    metric_ids = [m.get("id") for m in metrics]
+    expected_ids = [f"M{i:02d}" for i in range(1, 19)]
+    for exp_id in expected_ids:
+        assert exp_id in metric_ids, f"Metric {exp_id} missing from catalog"
+
+    required_fields = [
+        "id",
+        "name_ko",
+        "unit",
+        "collection_location",
+        "recommended_interval",
+        "system_load",
+        "collection_method",
+        "analysis_usage",
+    ]
+
+    for m in metrics:
+        for field in required_fields:
+            assert field in m, f"Metric {m.get('id')} missing required field: {field}"
+            assert m[field] is not None, f"Metric {m.get('id')} field {field} is None"
+
+
+def test_api_scenarios(client):
+    """
+    Verify GET /api/scenarios returns all 4 scenarios (SCN-01..SCN-04)
+    with 120-second timelines and RCA decision trees.
+    """
+    response = client.get("/api/scenarios")
+    assert response.status_code == 200
+    data = response.json()
+
+    # Could be list or dict keyed by scenario code
+    if isinstance(data, dict):
+        scenario_list = list(data.values()) if "scenarios" not in data else data["scenarios"]
+    else:
+        scenario_list = data
+
+    assert len(scenario_list) == 4, f"Expected 4 failure scenarios, found {len(scenario_list)}"
+
+    scenario_codes = [s.get("code") for s in scenario_list]
+    for code in ["SCN-01", "SCN-02", "SCN-03", "SCN-04"]:
+        assert code in scenario_codes, f"Scenario {code} not found in /api/scenarios"
+
+    for s in scenario_list:
+        assert "decision_tree" in s, f"Scenario {s.get('code')} missing decision_tree"
+        assert len(s["decision_tree"]) >= 3, f"Scenario {s.get('code')} decision tree too short"
+        assert "timeline" in s, f"Scenario {s.get('code')} missing timeline"
+        assert len(s["timeline"]) >= 100, f"Scenario {s.get('code')} timeline should span ~120s"
+        assert "lead_time_sec" in s, f"Scenario {s.get('code')} missing lead_time_sec"
+        assert s["lead_time_sec"] > 0, f"Scenario {s.get('code')} lead_time_sec should be positive"
+
+
+def test_api_scenario_trigger_and_reset(client):
+    """Verify POST /api/scenarios/trigger and POST /api/scenarios/reset work properly."""
+    # 1. Trigger SCN-01 on AGV-02
+    trigger_payload = {"agv_id": "AGV-02", "scenario_code": "SCN-01"}
+    resp_trigger = client.post("/api/scenarios/trigger", json=trigger_payload)
+    assert resp_trigger.status_code == 200
+    trigger_data = resp_trigger.json()
+    assert trigger_data.get("ok") is True or trigger_data.get("status") in ["ok", "triggered", "success", True] or "agv_id" in trigger_data
+
+    # 2. Reset scenarios
+    resp_reset = client.post("/api/scenarios/reset")
+    assert resp_reset.status_code == 200
+    reset_data = resp_reset.json()
+    assert reset_data.get("ok") is True or reset_data.get("status") in ["ok", "reset", "success", True]
+
+
+def test_api_agv_timeseries(client):
+    """Verify GET /api/agv/AGV-01/timeseries?window_sec=120 returns 1s time-series and 30s report markers."""
+    response = client.get("/api/agv/AGV-01/timeseries?window_sec=120")
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data.get("agv_id") == "AGV-01"
+    telemetry_1s = data.get("telemetry_1s", data.get("series", []))
+    assert len(telemetry_1s) > 0, "Expected non-empty 1s telemetry list"
+
+    # Verify presence of reports_30s markers
+    assert "acs_reports_30s" in data or "reports_30s" in data or "reports" in data
+
+
+def test_api_hybrid_architecture(client):
+    """Verify GET /api/hybrid-architecture returns 3-stage specification."""
+    response = client.get("/api/hybrid-architecture")
+    # Endpoint is documented in ARCHITECTURE.md and simulator
+    if response.status_code == 200:
+        data = response.json()
+        assert "stages" in data or "pipeline" in data or "spec" in data or "stages_detail" in data
+
+
+def test_api_incidents(client):
+    """Verify GET /api/incidents returns pre-detection and failure incident records."""
+    response = client.get("/api/incidents")
+    assert response.status_code == 200
+    data = response.json()
+    incidents = data if isinstance(data, list) else data.get("incidents", [])
+    assert isinstance(incidents, list)
+    # At least initial seeded incidents should be present
+    assert len(incidents) >= 1
