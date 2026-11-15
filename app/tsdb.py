@@ -1,4 +1,4 @@
-"""내장형 SQLite3 WAL 시계열 DB(TSDB) 엔진.
+"""SQLite3 WAL 기반 시계열 데이터 저장소(TSDB) 엔진.
 
 테이블: telemetry_1s / acs_reports_30s / incident_events
 기본 경로: <repo>/tsdb_data/network_telemetry.db (환경변수 TSDB_PATH 로 변경 가능)
@@ -15,10 +15,80 @@ from typing import Any, Optional
 
 from . import simulator as sim_mod
 
-DEFAULT_DB_PATH = str(Path(__file__).resolve().parent.parent / "tsdb_data" / "network_telemetry.db")
-RETENTION_SEC = 1800          # telemetry_1s 보존 30분
-REPORT_RETENTION_SEC = 7200   # acs_reports_30s 보존 2시간
-SEED_SECONDS = 600            # 시작 시 10분 분량 시드
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_DB_PATH = str(REPO_ROOT / "tsdb_data" / "network_telemetry.db")
+ENV_DEFAULTS = {
+    "HOST": "0.0.0.0",
+    "PORT": "9921",
+    "DASHBOARD_PORT": "9921",
+    "DEFAULT_THEME": "light",
+    "AGV_COUNT": "6",
+    "ACS_REPORT_INTERVAL_SEC": "30",
+    "LOCAL_RECORD_INTERVAL_SEC": "1",
+    "LOCAL_BUFFER_RETENTION_SEC": "300",
+    "TSDB_PATH": DEFAULT_DB_PATH,
+    "TSDB_RETENTION_SEC": "3600",
+    "TSDB_SEED_HISTORY_SEC": "600",
+}
+
+
+def load_env(env_path: Optional[Path] = None) -> dict[str, Any]:
+    """`.env` 파일을 표준 라이브러리로 파싱하여 `os.environ.setdefault`로 반영하고 설정 사전을 반환한다."""
+    p = env_path or (REPO_ROOT / ".env")
+    if p.is_file():
+        for raw in p.read_text(encoding="utf-8", errors="ignore").splitlines():
+            line = raw.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            k, v = k.strip(), v.strip().strip("'\"")
+            if k:
+                os.environ.setdefault(k, v)
+    for k, v in ENV_DEFAULTS.items():
+        os.environ.setdefault(k, v)
+    tsdb_path = os.environ.get("TSDB_PATH") or DEFAULT_DB_PATH
+    if tsdb_path.startswith("/app/") and not Path("/app").exists():
+        tsdb_path = DEFAULT_DB_PATH
+    port = int(os.environ.get("PORT", "9921"))
+    dash_port = int(os.environ.get("DASHBOARD_PORT", str(port)))
+    theme = (os.environ.get("DEFAULT_THEME", "light") or "light").lower()
+    agv_count = int(os.environ.get("AGV_COUNT", "6"))
+    report_sec = int(os.environ.get("ACS_REPORT_INTERVAL_SEC", "30"))
+    local_sec = int(os.environ.get("LOCAL_RECORD_INTERVAL_SEC", "1"))
+    buf_sec = int(os.environ.get("LOCAL_BUFFER_RETENTION_SEC", "300"))
+    ret_sec = int(os.environ.get("TSDB_RETENTION_SEC", "3600"))
+    seed_sec = int(os.environ.get("TSDB_SEED_HISTORY_SEC", "600"))
+    return {
+        "host": os.environ.get("HOST", "0.0.0.0"),
+        "port": port,
+        "dashboard_port": dash_port,
+        "default_theme": theme,
+        "agv_count": agv_count,
+        "acs_report_interval_sec": report_sec,
+        "report_interval_sec": report_sec,
+        "local_record_interval_sec": local_sec,
+        "local_buffer_retention_sec": buf_sec,
+        "tsdb_path": tsdb_path,
+        "tsdb_retention_sec": ret_sec,
+        "tsdb_seed_history_sec": seed_sec,
+        "HOST": os.environ.get("HOST", "0.0.0.0"),
+        "PORT": port,
+        "DASHBOARD_PORT": dash_port,
+        "DEFAULT_THEME": theme,
+        "AGV_COUNT": agv_count,
+        "ACS_REPORT_INTERVAL_SEC": report_sec,
+        "LOCAL_RECORD_INTERVAL_SEC": local_sec,
+        "LOCAL_BUFFER_RETENTION_SEC": buf_sec,
+        "TSDB_PATH": tsdb_path,
+        "TSDB_RETENTION_SEC": ret_sec,
+        "TSDB_SEED_HISTORY_SEC": seed_sec,
+    }
+
+
+_CFG = load_env()
+RETENTION_SEC = _CFG["tsdb_retention_sec"]
+REPORT_RETENTION_SEC = max(7200, RETENTION_SEC * 2)
+SEED_SECONDS = _CFG["tsdb_seed_history_sec"]
 
 TELEMETRY_COLS = [
     "ts", "agv_id", "zone_id", "bssid", "pos_x", "pos_y", "velocity", "rssi", "snr", "noise_floor", "phy_rate",
@@ -61,7 +131,8 @@ CREATE INDEX IF NOT EXISTS idx_incident_ts ON incident_events(ts_disconnected DE
 
 class TSDB:
     def __init__(self, path: Optional[str] = None):
-        self.path = path or os.environ.get("TSDB_PATH") or DEFAULT_DB_PATH
+        cfg = load_env()
+        self.path = path or cfg["tsdb_path"]
         Path(self.path).parent.mkdir(parents=True, exist_ok=True)
         self.lock = threading.RLock()
         self.conn = sqlite3.connect(self.path, check_same_thread=False, isolation_level=None)
@@ -133,10 +204,6 @@ class TSDB:
         now_ms = int(time.time() * 1000)
         with self.lock:
             last = self.conn.execute("SELECT MAX(ts) FROM telemetry_1s").fetchone()[0]
-        if not force and last is not None and last >= now_ms - 120_000:
-            if simulator is not None:
-                simulator.incident_seq = self.count_incidents()
-            return {"seeded": False, "reason": "recent data present", "last_ts": last}
         self.reset_all()
         simulator = simulator or sim_mod.Simulator(self)
         simulator.incident_seq = 0
@@ -264,7 +331,7 @@ class TSDB:
             "retention_window_sec": RETENTION_SEC,
             "oldest_ts": lo, "latest_ts": hi,
             "span_sec": round((hi - lo) / 1000.0) if lo and hi else 0,
-            "engine": "SQLite3 WAL Time-Series Engine",
+            "engine": "Time-Series DB (시계열 데이터 저장소)",
             "journal_mode": "WAL", "db_path": self.path,
         }
 

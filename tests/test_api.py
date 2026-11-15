@@ -1,16 +1,18 @@
 """
 ==============================================================================
-Integration & Functional API Test Suite for AGV Network Telemetry Dashboard
+Integration & Functional API Test Suite for AGV Network Telemetry Dashboard v1.1
 ==============================================================================
 Verifies:
-1. Web UI static index delivery and tour guide container presence
-2. /api/health TSDB & simulator health status
-3. /api/overview complete fleet status, 4 APs, KPIs, and TSDB stats (>0 rows)
-4. /api/metrics-catalog full 18 telemetry metrics validation
-5. /api/scenarios 4 failure scenarios, timelines, and RCA decision trees
-6. /api/scenarios/trigger and /api/scenarios/reset runtime control
-7. /api/agv/{agv_id}/timeseries high-resolution series & 30s report markers
-8. /api/hybrid-architecture and /api/incidents
+1. Web UI static index delivery with Light default theme & Tab 5 (tab-roles)
+2. /api/health TSDB & simulator health status with config metadata
+3. /api/config port 9921 & default_theme light verification (.env integration)
+4. /api/action-plan AGV/AMR and ACS owner responsibilities
+5. /api/overview complete fleet status, 4 APs, KPIs, and TSDB stats (>0 rows)
+6. /api/metrics-catalog 18 metrics strictly limited to AGV/AMR and ACS locations
+7. /api/scenarios 4 failure scenarios, timelines, and RCA decision trees
+8. /api/scenarios/trigger and /api/scenarios/reset runtime control
+9. /api/agv/{agv_id}/timeseries high-resolution series & 30s report markers
+10. /api/hybrid-architecture and /api/incidents
 ==============================================================================
 """
 
@@ -29,22 +31,51 @@ from app.main import app
 def client():
     """
     TestClient fixture with lifespan context enabled to ensure
-    TSDB seeding and simulator background tasks are initialized.
+    TSDB seeding, simulator background tasks, and .env configs are initialized.
     """
     with TestClient(app) as test_client:
         yield test_client
 
 
 def test_index_page(client):
-    """Verify GET / returns 200 and HTML with dashboard layout and tour guide elements."""
+    """
+    Verify GET / returns 200 and HTML with:
+    - Light default theme (data-theme="light")
+    - 2-row navbar & 5 tabs including Tab 5 (tab-roles)
+    - Spotlight tour guide container & presenter script
+    """
     response = client.get("/")
     assert response.status_code == 200
     assert "text/html" in response.headers.get("content-type", "")
     content = response.text
     assert "<!DOCTYPE html>" in content or "<html" in content
+
+    # Verify Light default theme per DESIGN.md
+    assert 'data-theme="light"' in content or "data-theme='light'" in content
+
     # Verify core dashboard identifiers
     assert "AGV" in content
     assert "투어" in content or "tour" in content.lower()
+
+    # Verify Tab 5 (담당자별 해야 할 일 / tab-roles)
+    assert "tab-roles" in content or "담당자별" in content
+
+
+def test_api_config(client):
+    """Verify GET /api/config returns port 9921 and default_theme light from .env."""
+    response = client.get("/api/config")
+    assert response.status_code == 200
+    config = response.json()
+    assert str(config.get("port", config.get("PORT", ""))) == "9921" or str(config.get("dashboard_port", "")) == "9921"
+    assert config.get("default_theme", config.get("DEFAULT_THEME", "")).lower() == "light"
+
+
+def test_api_action_plan(client):
+    """Verify GET /api/action-plan returns AGV/AMR and ACS engineering task breakdowns."""
+    response = client.get("/api/action-plan")
+    assert response.status_code == 200
+    plan = response.json()
+    assert "agv" in plan or "agv_owner" in plan or "agv_amr" in plan or "roles" in plan or "action_plans" in plan
 
 
 def test_api_health(client):
@@ -88,12 +119,12 @@ def test_api_metrics_catalog(client):
     Verify GET /api/metrics-catalog returns all 18 metrics with required fields:
     id, name_ko, unit, collection_location, recommended_interval,
     system_load, collection_method, analysis_usage.
+    CRITICAL: collection_location MUST be strictly limited to 'AGV/AMR', 'ACS', or 'AGV/AMR, ACS' (no AP/WLC).
     """
     response = client.get("/api/metrics-catalog")
     assert response.status_code == 200
     data = response.json()
 
-    # metrics list may be directly in list or nested under 'metrics' or 'catalog'
     metrics = data if isinstance(data, list) else data.get("metrics", data.get("catalog", []))
     assert len(metrics) == 18, f"Expected 18 metrics, received {len(metrics)}"
 
@@ -113,10 +144,15 @@ def test_api_metrics_catalog(client):
         "analysis_usage",
     ]
 
+    valid_locations = {"AGV/AMR", "ACS", "AGV/AMR, ACS", "AGV/AMR / ACS"}
+
     for m in metrics:
         for field in required_fields:
             assert field in m, f"Metric {m.get('id')} missing required field: {field}"
             assert m[field] is not None, f"Metric {m.get('id')} field {field} is None"
+
+        loc = m.get("collection_location", "").strip()
+        assert loc in valid_locations, f"Metric {m.get('id')} has invalid collection_location: {loc}. Must be AGV/AMR or ACS only."
 
 
 def test_api_scenarios(client):
@@ -128,7 +164,6 @@ def test_api_scenarios(client):
     assert response.status_code == 200
     data = response.json()
 
-    # Could be list or dict keyed by scenario code
     if isinstance(data, dict):
         scenario_list = list(data.values()) if "scenarios" not in data else data["scenarios"]
     else:
@@ -174,15 +209,12 @@ def test_api_agv_timeseries(client):
     assert data.get("agv_id") == "AGV-01"
     telemetry_1s = data.get("telemetry_1s", data.get("series", []))
     assert len(telemetry_1s) > 0, "Expected non-empty 1s telemetry list"
-
-    # Verify presence of reports_30s markers
     assert "acs_reports_30s" in data or "reports_30s" in data or "reports" in data
 
 
 def test_api_hybrid_architecture(client):
-    """Verify GET /api/hybrid-architecture returns 3-stage specification."""
+    """Verify GET /api/hybrid-architecture returns 3-stage specification and role action plans."""
     response = client.get("/api/hybrid-architecture")
-    # Endpoint is documented in ARCHITECTURE.md and simulator
     if response.status_code == 200:
         data = response.json()
         assert "stages" in data or "pipeline" in data or "spec" in data or "stages_detail" in data
@@ -195,5 +227,4 @@ def test_api_incidents(client):
     data = response.json()
     incidents = data if isinstance(data, list) else data.get("incidents", [])
     assert isinstance(incidents, list)
-    # At least initial seeded incidents should be present
     assert len(incidents) >= 1

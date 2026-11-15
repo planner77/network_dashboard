@@ -1,69 +1,30 @@
 /* ==========================================================================
-   AGV/AMR Network Telemetry & RCA Center — Industrial Design System (DESIGN.md)
-   Dual Theme: Dark Slate Mission Control (Default) & Light Enterprise
-   Strict 12-Column Grid, Tabular Numerals, Zero-Jitter Telemetry Layout
+   AGV/AMR–ACS 무선 네트워크 상태 관제 및 분석 UI/UX 디자인 시스템 (DESIGN.md v1.1)
+   기본 테마: Light Enterprise (:root, [data-theme="light"]) + Dark Slate 전환 지원
+   겹침 없는 2단 글로벌 헤더, 고정 헤더(Sticky Header) 일람표, 고시인성 투어 스포트라이트
    ========================================================================== */
 
 :root,
-[data-theme="dark"] {
-  /* Base Surface Tokens */
-  --bg-canvas: #0B0F17;
-  --bg-surface: #111827;
-  --bg-elevated: #1E293B;
-  --bg-glass: rgba(17, 24, 39, 0.88);
-  --bg-input: #0F172A;
-  --bg-code: #090D14;
-
-  /* Border Tokens */
-  --border-subtle: #1F2937;
-  --border-focus: #334155;
-  --border-highlight: rgba(56, 189, 248, 0.45);
-
-  /* Text Hierarchy Tokens */
-  --text-primary: #F8FAFC;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
-
-  /* Semantic & Accent Palette */
-  --accent-primary: #38BDF8;
-  --accent-primary-soft: rgba(56, 189, 248, 0.14);
-  --accent-indigo: #818CF8;
-  --accent-indigo-soft: rgba(129, 140, 248, 0.15);
-
-  --status-ok: #10B981;
-  --status-ok-soft: rgba(16, 185, 129, 0.14);
-  --status-warn: #F59E0B;
-  --status-warn-soft: rgba(245, 158, 11, 0.15);
-  --status-crit: #F43F5E;
-  --status-crit-soft: rgba(244, 63, 94, 0.15);
-
-  /* Chart & Canvas Specific Tokens */
-  --chart-grid: rgba(148, 163, 184, 0.12);
-  --chart-axis: #64748B;
-  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.32);
-  --shadow-popover: 0 20px 45px rgba(0, 0, 0, 0.65);
-}
-
 [data-theme="light"] {
-  /* Light Enterprise Tokens */
+  /* Light Enterprise 기본 테마 토큰 */
   --bg-canvas: #F1F5F9;
   --bg-surface: #FFFFFF;
   --bg-elevated: #F8FAFC;
-  --bg-glass: rgba(255, 255, 255, 0.92);
+  --bg-glass: rgba(255, 255, 255, 0.94);
   --bg-input: #F8FAFC;
   --bg-code: #0F172A;
 
-  /* Border Tokens */
+  /* 보더 토큰 */
   --border-subtle: #E2E8F0;
-  --border-focus: #CBD5E1;
+  --border-focus: #94A3B8;
   --border-highlight: rgba(2, 132, 199, 0.45);
 
-  /* Text Hierarchy Tokens */
+  /* 텍스트 위계 토큰 */
   --text-primary: #0F172A;
-  --text-secondary: #475569;
+  --text-secondary: #334155;
   --text-muted: #64748B;
 
-  /* Semantic & Accent Palette */
+  /* 시맨틱 상태 및 강조 컬러 */
   --accent-primary: #0284C7;
   --accent-primary-soft: rgba(2, 132, 199, 0.12);
   --accent-indigo: #4F46E5;
@@ -72,15 +33,54 @@
   --status-ok: #059669;
   --status-ok-soft: rgba(5, 150, 105, 0.12);
   --status-warn: #D97706;
-  --status-warn-soft: rgba(217, 119, 6, 0.12);
+  --status-warn-soft: rgba(217, 119, 6, 0.14);
   --status-crit: #E11D48;
   --status-crit-soft: rgba(225, 29, 72, 0.12);
 
-  /* Chart & Canvas Specific Tokens */
-  --chart-grid: rgba(71, 85, 105, 0.12);
+  /* 차트 및 그림자 토큰 */
+  --chart-grid: rgba(71, 85, 105, 0.14);
   --chart-axis: #64748B;
   --shadow-card: 0 2px 8px rgba(15, 23, 42, 0.06);
-  --shadow-popover: 0 16px 36px rgba(15, 23, 42, 0.18);
+  --shadow-popover: 0 20px 45px rgba(15, 23, 42, 0.25);
+}
+
+[data-theme="dark"] {
+  /* Dark Slate 전환 테마 토큰 */
+  --bg-canvas: #0B0F17;
+  --bg-surface: #111827;
+  --bg-elevated: #1E293B;
+  --bg-glass: rgba(17, 24, 39, 0.92);
+  --bg-input: #0F172A;
+  --bg-code: #090D14;
+
+  /* 보더 토큰 */
+  --border-subtle: #1F2937;
+  --border-focus: #334155;
+  --border-highlight: rgba(56, 189, 248, 0.45);
+
+  /* 텍스트 위계 토큰 */
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+
+  /* 시맨틱 상태 및 강조 컬러 */
+  --accent-primary: #38BDF8;
+  --accent-primary-soft: rgba(56, 189, 248, 0.14);
+  --accent-indigo: #818CF8;
+  --accent-indigo-soft: rgba(129, 140, 248, 0.15);
+
+  --status-ok: #10B981;
+  --status-ok-soft: rgba(16, 185, 129, 0.14);
+  --status-warn: #F59E0B;
+  --status-warn-soft: rgba(245, 158, 11, 0.16);
+  --status-crit: #F43F5E;
+  --status-crit-soft: rgba(244, 63, 94, 0.15);
+
+  /* 차트 및 그림자 토큰 */
+  --chart-grid: rgba(148, 163, 184, 0.12);
+  --chart-axis: #64748B;
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.35);
+  --shadow-popover: 0 22px 50px rgba(0, 0, 0, 0.72);
 }
 
 /* ==========================================================================
@@ -96,21 +96,20 @@
 
 html {
   font-size: 16px;
-  scroll-behavior: smooth;
 }
 
 body {
-  font-family: 'Inter', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--bg-canvas);
   color: var(--text-primary);
-  line-height: 1.5;
+  line-height: 1.55;
   min-height: 100vh;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.18s ease, color 0.18s ease;
 }
 
-/* Monospace & Tabular Numerals (Zero-jitter guarantee for 1s live updates) */
+/* 고정폭 숫자 (1초 실시간 갱신 시 레이아웃 흔들림 방지) */
 .mono,
 .tabular-nums,
 .kpi-hero-value,
@@ -122,43 +121,42 @@ pre {
   font-variant-numeric: tabular-nums;
 }
 
-/* Typography Hierarchy per DESIGN.md Section 3 */
 .text-h1 {
-  font-size: 1.375rem; /* 22px */
+  font-size: 1.375rem;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.02em;
 }
 
 .text-h2 {
-  font-size: 1.0rem; /* 16px */
-  font-weight: 600;
+  font-size: 1.0rem;
+  font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.01em;
 }
 
 .text-h3 {
-  font-size: 0.875rem; /* 14px */
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .kpi-hero-value {
-  font-size: 1.75rem; /* 28px */
+  font-size: 1.75rem;
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: -0.02em;
 }
 
 .kpi-unit {
-  font-size: 0.75rem; /* 12px */
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 600;
   color: var(--text-muted);
   margin-left: 4px;
 }
 
 .text-body {
-  font-size: 0.875rem; /* 14px */
+  font-size: 0.875rem;
   font-weight: 400;
   color: var(--text-secondary);
   line-height: 1.6;
@@ -171,52 +169,54 @@ pre {
 }
 
 .text-caption {
-  font-size: 0.75rem; /* 12px */
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-muted);
 }
 
-/* Semantic Text Colors */
-.color-ok { color: var(--status-ok) !important; }
-.color-warn { color: var(--status-warn) !important; }
-.color-crit { color: var(--status-crit) !important; }
+/* 시맨틱 컬러 유틸리티 */
+.color-ok     { color: var(--status-ok) !important; }
+.color-warn   { color: var(--status-warn) !important; }
+.color-crit   { color: var(--status-crit) !important; }
 .color-accent { color: var(--accent-primary) !important; }
 .color-indigo { color: var(--accent-indigo) !important; }
 
 /* ==========================================================================
-   2. Top Global Navigation Bar (Fixed 60px Height)
+   2. 겹침 없는 2단 글로벌 내비게이션 헤더 (.global-navbar)
+   1단(navbar-top): 로고/타이틀 + 실시간 수집 상태 배지 | 투어 버튼 + 테마 전환
+   2단(navbar-tabs-bar): 5개 핵심 메뉴 탭 독립 배치 (겹침 원천 차단)
    ========================================================================== */
-.top-navbar {
+.global-navbar {
   position: sticky;
   top: 0;
   z-index: 100;
-  height: 60px;
   background-color: var(--bg-surface);
   border-bottom: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-card);
-  padding: 0 24px;
 }
 
-.navbar-inner {
+.navbar-top {
   max-width: 1600px;
-  height: 100%;
   margin: 0 auto;
+  padding: 10px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .navbar-brand {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
   min-width: 0;
 }
 
 .brand-logo {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   background: linear-gradient(135deg, var(--accent-primary-soft), var(--accent-indigo-soft));
   border: 1px solid var(--border-highlight);
@@ -233,36 +233,35 @@ pre {
 }
 
 .brand-title-main {
-  font-size: 0.95rem;
+  font-size: 1.02rem;
   font-weight: 700;
   color: var(--text-primary);
   letter-spacing: -0.01em;
-  white-space: nowrap;
 }
 
 .brand-subtitle {
-  font-size: 0.7rem;
+  font-size: 0.74rem;
   color: var(--text-muted);
-  white-space: nowrap;
 }
 
 .live-stream-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 4px 12px;
   border-radius: 999px;
   background-color: var(--status-ok-soft);
-  border: 1px solid rgba(16, 185, 129, 0.35);
+  border: 1px solid rgba(5, 150, 105, 0.35);
   color: var(--status-ok);
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   font-weight: 600;
+  flex-shrink: 0;
   white-space: nowrap;
 }
 
 .pulse-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background-color: var(--status-ok);
   box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
@@ -270,54 +269,72 @@ pre {
 }
 
 @keyframes pulse-emerald {
-  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.65); }
-  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.65); }
+  70%  { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
   100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
 
-/* Navigation Tabs (Center Aligned) */
-.navbar-tabs {
+.navbar-actions {
   display: flex;
   align-items: center;
-  height: 100%;
-  gap: 4px;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* 2단 탭 바: 독립된 행으로 분리하여 좌측 상태 배지와 절대 겹치지 않음 */
+.navbar-tabs-bar {
+  background-color: var(--bg-elevated);
+  border-top: 1px solid var(--border-subtle);
+  padding: 0 24px;
+}
+
+.navbar-tabs {
+  max-width: 1600px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  min-height: 44px;
 }
 
 .nav-tab {
   position: relative;
-  height: 100%;
-  padding: 0 14px;
+  height: 44px;
+  padding: 0 16px;
   background: transparent;
   border: none;
   color: var(--text-secondary);
   font-family: inherit;
-  font-size: 0.84rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   transition: color 0.15s ease, background-color 0.15s ease;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .nav-tab:hover {
   color: var(--text-primary);
-  background-color: rgba(148, 163, 184, 0.06);
+  background-color: rgba(148, 163, 184, 0.1);
 }
 
 .nav-tab.active {
   color: var(--accent-primary);
+  background-color: var(--bg-surface);
+  font-weight: 700;
 }
 
 .nav-tab.active::after {
   content: "";
   position: absolute;
   bottom: 0;
-  left: 10px;
-  right: 10px;
+  left: 0;
+  right: 0;
   height: 3px;
-  border-radius: 3px 3px 0 0;
   background-color: var(--accent-primary);
 }
 
@@ -325,36 +342,30 @@ pre {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  font-size: 0.68rem;
+  width: 20px;
+  height: 20px;
+  border-radius: 5px;
+  font-size: 0.72rem;
   font-weight: 700;
-  background-color: var(--bg-elevated);
+  background-color: var(--bg-surface);
   color: var(--text-muted);
   border: 1px solid var(--border-subtle);
 }
 
 .nav-tab.active .tab-step-num {
-  background-color: var(--accent-primary-soft);
-  color: var(--accent-primary);
-  border-color: var(--border-highlight);
+  background-color: var(--accent-primary);
+  color: #FFFFFF;
+  border-color: var(--accent-primary);
 }
 
-/* Right Action Buttons */
-.navbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
+/* Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   height: 34px;
-  padding: 0 12px;
+  padding: 0 13px;
   border-radius: 6px;
   font-family: inherit;
   font-size: 0.8rem;
@@ -369,42 +380,44 @@ pre {
 
 .btn:hover {
   border-color: var(--border-focus);
-  filter: brightness(1.06);
+  filter: brightness(0.97);
 }
 
 .btn-tour {
-  background: linear-gradient(135deg, var(--accent-primary-soft), var(--accent-indigo-soft));
-  border-color: var(--border-highlight);
-  color: var(--accent-primary);
+  background: linear-gradient(135deg, #0284C7, #4F46E5);
+  border-color: #0284C7;
+  color: #FFFFFF;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.28);
 }
 
 .btn-tour:hover {
-  background-color: var(--accent-primary);
-  color: #0B0F17;
+  filter: brightness(1.08);
+  color: #FFFFFF;
 }
 
 .btn-primary {
   background-color: var(--accent-primary);
   border-color: var(--accent-primary);
-  color: #0B0F17;
+  color: #FFFFFF;
   font-weight: 700;
 }
 
 .btn-warn {
   background-color: var(--status-warn-soft);
-  border-color: rgba(245, 158, 11, 0.45);
+  border-color: rgba(217, 119, 6, 0.45);
   color: var(--status-warn);
 }
 
 .btn-crit {
   background-color: var(--status-crit-soft);
-  border-color: rgba(244, 63, 94, 0.45);
+  border-color: rgba(225, 29, 72, 0.45);
   color: var(--status-crit);
 }
 
 .btn-ok {
   background-color: var(--status-ok-soft);
-  border-color: rgba(16, 185, 129, 0.45);
+  border-color: rgba(5, 150, 105, 0.45);
   color: var(--status-ok);
 }
 
@@ -415,12 +428,12 @@ pre {
 }
 
 /* ==========================================================================
-   3. App Container & Strict 12-Column Grid System (DESIGN.md Section 4)
+   3. App Container & Strict 12-Column Grid System
    ========================================================================== */
 .app-container {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 16px 24px 40px;
+  padding: 18px 24px 48px;
 }
 
 .grid-12 {
@@ -439,19 +452,12 @@ pre {
 .col-span-4  { grid-column: span 4; }
 .col-span-3  { grid-column: span 3; }
 
-/* View Tab Switching */
 .tab-view {
   display: none;
 }
 
 .tab-view.active {
   display: block;
-  animation: fadeInView 0.2s ease-out;
-}
-
-@keyframes fadeInView {
-  from { opacity: 0; transform: translateY(3px); }
-  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ==========================================================================
@@ -469,12 +475,11 @@ pre {
   position: relative;
 }
 
-/* Strict 28px Card Header per DESIGN.md Section 4.2 */
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 28px;
+  min-height: 28px;
   margin-bottom: 12px;
   flex-shrink: 0;
   gap: 8px;
@@ -495,9 +500,9 @@ pre {
   flex-shrink: 0;
 }
 
-.title-accent-bar.warn { background-color: var(--status-warn); }
-.title-accent-bar.crit { background-color: var(--status-crit); }
-.title-accent-bar.ok   { background-color: var(--status-ok); }
+.title-accent-bar.warn   { background-color: var(--status-warn); }
+.title-accent-bar.crit   { background-color: var(--status-crit); }
+.title-accent-bar.ok     { background-color: var(--status-ok); }
 .title-accent-bar.indigo { background-color: var(--accent-indigo); }
 
 /* ==========================================================================
@@ -506,14 +511,15 @@ pre {
 .welcome-banner {
   background: linear-gradient(90deg, var(--bg-surface) 0%, var(--bg-elevated) 100%);
   border: 1px solid var(--border-highlight);
-  border-left: 4px solid var(--accent-primary);
+  border-left: 5px solid var(--accent-primary);
   border-radius: 8px;
-  padding: 14px 20px;
+  padding: 16px 20px;
   margin-bottom: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  box-shadow: var(--shadow-card);
 }
 
 .welcome-banner.hidden {
@@ -523,21 +529,23 @@ pre {
 .welcome-content {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
 }
 
 .welcome-title {
-  font-size: 0.92rem;
+  font-size: 0.96rem;
   font-weight: 700;
   color: var(--text-primary);
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .welcome-desc {
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   color: var(--text-secondary);
+  line-height: 1.55;
 }
 
 .welcome-actions {
@@ -548,10 +556,10 @@ pre {
 }
 
 /* ==========================================================================
-   6. KPI Summary Cards (Top Row, Equal Height)
+   6. KPI Summary Cards & Badges
    ========================================================================== */
 .kpi-card {
-  min-height: 138px;
+  min-height: 142px;
   justify-content: space-between;
 }
 
@@ -577,7 +585,7 @@ pre {
 }
 
 .kpi-meta-label {
-  font-size: 0.7rem;
+  font-size: 0.71rem;
   color: var(--text-muted);
 }
 
@@ -587,7 +595,6 @@ pre {
   color: var(--text-primary);
 }
 
-/* Status Badges */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -604,31 +611,31 @@ pre {
 .badge-ok {
   background-color: var(--status-ok-soft);
   color: var(--status-ok);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  border: 1px solid rgba(5, 150, 105, 0.3);
 }
 
 .badge-warn {
   background-color: var(--status-warn-soft);
   color: var(--status-warn);
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  border: 1px solid rgba(217, 119, 6, 0.35);
 }
 
 .badge-crit {
   background-color: var(--status-crit-soft);
   color: var(--status-crit);
-  border: 1px solid rgba(244, 63, 94, 0.35);
+  border: 1px solid rgba(225, 29, 72, 0.35);
 }
 
 .badge-sky {
   background-color: var(--accent-primary-soft);
   color: var(--accent-primary);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  border: 1px solid rgba(2, 132, 199, 0.3);
 }
 
 .badge-indigo {
   background-color: var(--accent-indigo-soft);
   color: var(--accent-indigo);
-  border: 1px solid rgba(129, 140, 248, 0.3);
+  border: 1px solid rgba(79, 70, 229, 0.3);
 }
 
 .badge-neutral {
@@ -644,7 +651,7 @@ pre {
   position: relative;
   width: 100%;
   height: 430px;
-  background-color: var(--bg-code);
+  background-color: var(--bg-input);
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
   overflow: hidden;
@@ -718,7 +725,6 @@ pre {
   color: var(--text-secondary);
 }
 
-/* Right Column Stack on Tab 1 */
 .right-col-stack {
   display: flex;
   flex-direction: column;
@@ -726,7 +732,6 @@ pre {
   height: 100%;
 }
 
-/* Scenario Injector Grid */
 .injector-controls {
   display: flex;
   flex-direction: column;
@@ -759,17 +764,12 @@ pre {
   background-color: var(--status-warn-soft);
 }
 
-.btn-scenario-trigger.active-trigger {
-  border-color: var(--status-crit);
-  background-color: var(--status-crit-soft);
-}
-
 .scn-btn-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   font-weight: 700;
   color: var(--status-warn);
 }
@@ -785,20 +785,40 @@ pre {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 10px;
+  padding: 7px 11px;
   border-radius: 6px;
-  background-color: var(--bg-input);
+  background-color: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
   font-size: 0.75rem;
   color: var(--text-secondary);
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 /* ==========================================================================
-   8. Strict Data Tables (Left Text, Right Number, Center Badge)
+   8. Data Tables & Sticky Table Header (.catalog-table-scroll)
    ========================================================================== */
 .table-responsive {
   width: 100%;
   overflow-x: auto;
+}
+
+/* Tab 3: 수집 항목 백과사전 일람표 상단 헤더 고정 (Sticky Header) */
+.catalog-table-scroll {
+  width: 100%;
+  max-height: 460px;
+  overflow-y: auto;
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+}
+
+.catalog-table-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 25;
+  background-color: var(--bg-elevated);
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.10);
 }
 
 .telemetry-table {
@@ -809,12 +829,10 @@ pre {
 
 .telemetry-table th {
   background-color: var(--bg-elevated);
-  color: var(--text-muted);
-  font-size: 0.72rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  padding: 8px 10px;
+  color: var(--text-secondary);
+  font-size: 0.73rem;
+  font-weight: 700;
+  padding: 9px 10px;
   border-bottom: 1px solid var(--border-subtle);
   white-space: nowrap;
 }
@@ -833,7 +851,7 @@ pre {
 }
 
 .telemetry-table tbody tr:hover {
-  background-color: rgba(148, 163, 184, 0.07);
+  background-color: rgba(148, 163, 184, 0.1);
 }
 
 .telemetry-table tbody tr.selected-row {
@@ -844,16 +862,14 @@ pre {
   border-left: 3px solid var(--accent-primary);
 }
 
-/* Strict Column Alignment Utilities per DESIGN.md Section 4.2 */
 .text-left   { text-align: left !important; }
 .text-center { text-align: center !important; }
 .text-right  { text-align: right !important; }
 
-/* Mini Live Chart Canvas */
 .mini-chart-box {
   width: 100%;
   height: 155px;
-  background-color: var(--bg-code);
+  background-color: var(--bg-input);
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
   overflow: hidden;
@@ -887,7 +903,6 @@ pre {
   box-shadow: 0 0 0 1px var(--accent-primary);
 }
 
-/* Timeline Playback & Comparison Bar */
 .playback-control-bar {
   display: flex;
   align-items: center;
@@ -932,7 +947,7 @@ pre {
   padding: 12px 16px;
   border-radius: 6px;
   border: 1px solid var(--border-subtle);
-  background-color: var(--bg-input);
+  background-color: var(--bg-elevated);
 }
 
 .comparison-box.legacy {
@@ -948,11 +963,10 @@ pre {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 6px;
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   font-weight: 700;
 }
 
-/* 3-Layer Synchronized Charts */
 .sync-charts-stack {
   display: flex;
   flex-direction: column;
@@ -960,7 +974,7 @@ pre {
 }
 
 .sync-chart-layer {
-  background-color: var(--bg-code);
+  background-color: var(--bg-input);
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
   padding: 8px 10px 4px;
@@ -972,10 +986,12 @@ pre {
   align-items: center;
   font-size: 0.74rem;
   margin-bottom: 4px;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .layer-title {
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
 }
 
@@ -1021,12 +1037,11 @@ pre {
   color: var(--text-primary);
 }
 
-/* Automated RCA Decision Tree Panel */
 .rca-verdict-banner {
   padding: 14px;
   border-radius: 6px;
   background: linear-gradient(135deg, var(--status-crit-soft), var(--bg-elevated));
-  border: 1px solid rgba(244, 63, 94, 0.35);
+  border: 1px solid rgba(225, 29, 72, 0.35);
   margin-bottom: 14px;
 }
 
@@ -1047,7 +1062,7 @@ pre {
 
 .decision-step-item.step-fail {
   border-left-color: var(--status-crit);
-  background-color: rgba(244, 63, 94, 0.06);
+  background-color: var(--status-crit-soft);
 }
 
 .step-top-row {
@@ -1081,7 +1096,7 @@ pre {
 .evidence-pill {
   padding: 4px 8px;
   border-radius: 4px;
-  background-color: var(--bg-input);
+  background-color: var(--bg-elevated);
   border: 1px solid var(--border-focus);
   font-size: 0.72rem;
   color: var(--text-primary);
@@ -1168,7 +1183,6 @@ pre {
   border-color: var(--accent-primary);
 }
 
-/* Metric Detail 8-Field Inspector */
 .metric-detail-grid {
   display: flex;
   flex-direction: column;
@@ -1183,10 +1197,9 @@ pre {
 }
 
 .detail-section-label {
-  font-size: 0.72rem;
+  font-size: 0.73rem;
   font-weight: 700;
   color: var(--accent-primary);
-  text-transform: uppercase;
   margin-bottom: 6px;
   display: flex;
   align-items: center;
@@ -1209,9 +1222,9 @@ pre {
   gap: 2px;
 }
 
-.thresh-cell.ok   { background-color: var(--status-ok-soft); border: 1px solid rgba(16, 185, 129, 0.3); }
-.thresh-cell.warn { background-color: var(--status-warn-soft); border: 1px solid rgba(245, 158, 11, 0.3); }
-.thresh-cell.crit { background-color: var(--status-crit-soft); border: 1px solid rgba(244, 63, 94, 0.3); }
+.thresh-cell.ok   { background-color: var(--status-ok-soft); border: 1px solid rgba(5, 150, 105, 0.3); }
+.thresh-cell.warn { background-color: var(--status-warn-soft); border: 1px solid rgba(217, 119, 6, 0.3); }
+.thresh-cell.crit { background-color: var(--status-crit-soft); border: 1px solid rgba(225, 29, 72, 0.3); }
 
 .code-snippet-box {
   background-color: var(--bg-code);
@@ -1226,7 +1239,6 @@ pre {
   margin-top: 6px;
 }
 
-/* Full 18-Metric Cards Grid */
 .metrics-full-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1251,7 +1263,7 @@ pre {
 }
 
 /* ==========================================================================
-   11. Tab 4: Hybrid Telemetry Architecture & Bandwidth Calculator
+   11. Tab 4 & Tab 5: Hybrid Architecture & Role Action Plans (AGV vs ACS)
    ========================================================================== */
 .arch-pipeline-grid {
   display: grid;
@@ -1263,7 +1275,7 @@ pre {
 .arch-stage-card {
   background-color: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
-  border-top: 3px solid var(--accent-primary);
+  border-top: 4px solid var(--accent-primary);
   border-radius: 8px;
   padding: 16px;
   display: flex;
@@ -1295,31 +1307,73 @@ pre {
   border: 1px solid var(--border-subtle);
 }
 
+/* Tab 5: 담당자별 역할 및 체크리스트 카드 */
+.role-duty-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.role-duty-item {
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-subtle);
+  border-left: 4px solid var(--accent-primary);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+
+.role-duty-item.acs-role {
+  border-left-color: var(--accent-indigo);
+}
+
+.role-duty-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 /* ==========================================================================
-   12. Interactive Spotlight Tour Guide (7-Step Presentation Mode)
+   12. 고시인성 인터랙티브 투어 가이드 (High-Visibility Spotlight Tour)
+   - 어두운 배경 마스크 (rgba(15, 23, 42, 0.72))
+   - 대상 요소 직접 하이라이트 (.tour-active-target) + 이중 광채 스포트라이트 링
+   - 상단 플로팅 배지 (📍 현재 설명 영역 — Step N/8)
    ========================================================================== */
 .tour-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(5, 8, 14, 0.65);
+  background-color: rgba(15, 23, 42, 0.72);
   z-index: 900;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.25s ease;
+  transition: opacity 0.2s ease;
 }
 
 .tour-backdrop.active {
   opacity: 1;
 }
 
+/* 투어 대상 요소 자체에 부여되는 고대비 강조 클래스 */
+.tour-active-target {
+  position: relative !important;
+  z-index: 915 !important;
+  outline: 4px solid #F59E0B !important;
+  outline-offset: 2px !important;
+  box-shadow: 0 0 0 8px rgba(2, 132, 199, 0.38), 0 14px 36px rgba(15, 23, 42, 0.35) !important;
+  border-radius: 8px;
+}
+
 .tour-spotlight-ring {
   position: fixed;
-  z-index: 910;
-  border: 2px solid var(--accent-primary);
+  z-index: 920;
+  border: 4px solid #F59E0B;
   border-radius: 10px;
-  box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.25), 0 0 30px rgba(56, 189, 248, 0.45);
+  box-shadow: 0 0 0 4px #0284C7, 0 0 32px rgba(245, 158, 11, 0.75);
   pointer-events: none;
-  transition: all 0.28s cubic-bezier(0.22, 1, 0.36, 1);
   display: none;
 }
 
@@ -1327,29 +1381,52 @@ pre {
   display: block;
 }
 
+.tour-spotlight-badge {
+  position: absolute;
+  top: -32px;
+  left: -4px;
+  background: linear-gradient(90deg, #F59E0B, #D97706);
+  color: #FFFFFF;
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 6px 6px 6px 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  white-space: nowrap;
+  letter-spacing: -0.01em;
+}
+
 .tour-popover {
   position: fixed;
-  bottom: 28px;
-  right: 28px;
-  width: 440px;
+  bottom: 24px;
+  right: 24px;
+  width: 470px;
   max-width: calc(100vw - 32px);
   background-color: var(--bg-surface);
-  border: 2px solid var(--accent-primary);
-  border-radius: 10px;
-  padding: 20px;
-  z-index: 950;
+  border: 3px solid var(--accent-primary);
+  border-radius: 12px;
+  padding: 0;
+  z-index: 960;
   box-shadow: var(--shadow-popover);
   display: none;
+  overflow: hidden;
 }
 
 .tour-popover.active {
   display: block;
-  animation: fadeInTour 0.22s ease-out;
 }
 
-@keyframes fadeInTour {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+.tour-popover-header {
+  background: linear-gradient(90deg, #0284C7, #4F46E5);
+  color: #FFFFFF;
+  padding: 12px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tour-popover-body {
+  padding: 18px 20px;
 }
 
 .tour-step-dots {
@@ -1361,16 +1438,15 @@ pre {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: var(--border-focus);
+  background-color: rgba(255, 255, 255, 0.4);
 }
 
 .tour-dot.active {
-  width: 20px;
+  width: 22px;
   border-radius: 4px;
-  background-color: var(--accent-primary);
+  background-color: #FACC15;
 }
 
-/* Responsive Breakpoints */
 @media (max-width: 1280px) {
   .col-span-3 { grid-column: span 6; }
   .col-span-7, .col-span-5, .col-span-8, .col-span-4 { grid-column: span 12; }

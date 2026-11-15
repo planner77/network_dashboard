@@ -70,28 +70,28 @@ SCENARIO_T_DISCONNECT = {"SCN-01": 26.0, "SCN-02": 24.0, "SCN-03": 23.0, "SCN-04
 
 SCENARIO_META = {
     "SCN-01": {
-        "title": "AP 로밍 실패 / Sticky Client",
-        "root_cause": "AGV가 기존 AP에 고착(Sticky)되어 RSSI가 -78dBm 이하로 하락했음에도 BSSID 변경이 지연됨. "
-                      "뒤늦은 로밍 시 Roaming Latency 250ms 초과 + Beacon Loss 급증으로 TCP 소켓 단절.",
-        "action": "AGV 드라이버 Roaming Threshold를 -70dBm으로 상향하고 AP/WLC에 802.11k/v/r(Fast BSS Transition) 활성화.",
+        "title": "AP 로밍 실패 / 기지국 전환 지연",
+        "root_cause": "AGV가 기존 AP에 고착되어 수신 신호(RSSI)가 -78dBm 이하로 하락했음에도 기지국(BSSID) 변경이 지연됨. "
+                      "뒤늦은 로밍 시 전환 소요 시간 250ms 초과 + 비콘 신호 유실 급증으로 소켓 연결 단절.",
+        "action": "AGV 무선 드라이버 로밍 탐색 시작 기준을 -70dBm으로 상향하고 802.11k/v/r 고속 로밍 옵션 활성화.",
     },
     "SCN-02": {
-        "title": "물리적 음영지역 / EMI 간섭 (Dead Zone)",
-        "root_cause": "철제 랙 음영 및 용접 설비 노이즈로 RSSI 급락(-82dBm 이하) 및 Noise Floor 상승(SNR 12dB 이하), "
-                      "L2 Retry 35% 초과, PHY Rate 6Mbps 급락 후 소켓 단절.",
-        "action": "히트맵 음영 좌표에 보조 AP/지향성 안테나 증설, 2.4GHz 배제 및 5GHz 비간섭 채널 고정.",
+        "title": "물리적 음영 구역 / 설비 전파 간섭",
+        "root_cause": "철제 랙 전파 차폐 및 용접 설비 잡음으로 수신 신호 급락(-82dBm 이하) 및 주변 잡음 상승(SNR 12dB 이하), "
+                      "무선 재시도율 35% 초과, 무선 연결 속도 6Mbps 급락 후 소켓 단절.",
+        "action": "상습 음영 좌표에 보조 AP/지향성 안테나 증설, 2.4GHz 배제 및 5GHz 비간섭 채널 고정.",
     },
     "SCN-03": {
-        "title": "AP 과부하 / 동일 채널 혼잡 (Channel Contention)",
-        "root_cause": "RSSI/SNR은 양호(-60dBm, 28dB)하나 Channel Utilization 75% 초과로 Gateway RTT/Jitter 100ms 이상, "
-                      "TCP 재전송 다발 후 소켓 단절.",
-        "action": "AP 클라이언트 로드밸런싱, 20MHz 채널폭 최적화, 불필요한 멀티캐스트/브로드캐스트 차단.",
+        "title": "무선 채널 과부하 / 동일 채널 혼잡",
+        "root_cause": "수신 신호 및 신호대잡음비는 양호(-60dBm, 28dB)하나 무선 채널 혼잡도 75% 초과로 게이트웨이 응답 시간/흔들림 폭이 100ms 이상 치솟고 "
+                      "소켓 재전송 다발 후 연결 단절.",
+        "action": "인접 채널/AP로 접속 분산, 20MHz 채널폭 최적화, 불필요한 브로드캐스트 트래픽 차단.",
     },
     "SCN-04": {
-        "title": "AGV/ACS 소켓 블로킹 / 시스템 병목 (Socket Hang)",
-        "root_cause": "RSSI/SNR/Gateway RTT는 정상이나 Socket Recv-Q 급증 및 AGV CPU 92% 초과로 보고 스레드가 "
-                      "스케줄링되지 못해 30초 보고 타임아웃 발생 (네트워크 문제 아님).",
-        "action": "SLAM 스레드와 네트워크 보고 스레드 CPU 코어 분리(taskset), 비동기 논블로킹 소켓 적용. 무선 공사 불필요.",
+        "title": "통신 프로그램 일시 멈춤 (응답 지연) / 시스템 병목",
+        "root_cause": "무선 신호/잡음/게이트웨이 응답 시간은 모두 정상이나 소켓 수신 대기 데이터(Recv-Q) 급증 및 AGV CPU 사용률 92% 초과로 "
+                      "통신 프로그램이 일시 멈춤(응답 지연) 상태에 빠져 30초 정기 보고 타임아웃 발생 (무선 네트워크 문제 아님).",
+        "action": "자율주행(SLAM) 연산 프로세스와 통신 보고 프로세스의 CPU 코어 분리(taskset) 및 비동기 소켓 처리 적용. 무선 설비 공사 불필요.",
     },
 }
 
