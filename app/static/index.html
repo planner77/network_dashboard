@@ -64,7 +64,7 @@
         </button>
         <button class="nav-tab" data-tab="tab-catalog" role="tab" aria-selected="false" id="tab-btn-catalog">
           <span class="tab-step-num">3</span>
-          <span>수집 항목 백과사전 (18종)</span>
+          <span>수집 항목 백과사전 (21종)</span>
         </button>
         <button class="nav-tab" data-tab="tab-arch" role="tab" aria-selected="false" id="tab-btn-arch">
           <span class="tab-step-num">4</span>
@@ -92,7 +92,7 @@
         </div>
         <p class="welcome-desc">
           이동 중인 AGV가 기지국(AP)을 갈아타거나 철제 구조물 뒤쪽(음영 구역)에 진입할 때 무선 품질 악화는 <strong>불과 3~15초 사이</strong>에 발생하여 30초 보고 주기 사이에 예고 없이 끊어집니다.
-          본 사이트는 별도의 무선 장비(AP/WLC) 접근 권한 없이 <strong>오직 AGV/AMR과 ACS 양단에서만 수집 가능한 18종 상태 항목</strong>과
+          본 사이트는 별도의 무선 장비(AP/WLC) 접근 권한 없이 <strong>오직 AGV/AMR과 ACS 양단에서만 수집 가능한 21종 상태 항목(MIMO 안테나별 신호·채널 정보·링크 품질 포함)</strong>과
           <strong>① AGV 내부 1초 단위 상시 기록장(최근 5분 블랙박스) + ② 30초 정기 보고 시 요약 데이터 동봉 전송 + ③ 이상 징후 조기 알림 및 재연결 후 상세 기록 전송</strong> 모델을 시연합니다.
         </p>
       </div>
@@ -661,7 +661,7 @@
     </section>
 
     <!-- ==================================================================
-         TAB 3: 3. 수집 항목 백과사전 (18종 — AGV/AMR 및 ACS 전용, 고정 헤더 일람표)
+         TAB 3: 3. 수집 항목 백과사전 (21종 — AGV/AMR 및 ACS 전용, 고정 헤더 일람표)
          ================================================================== -->
     <section class="tab-view" id="tab-catalog" role="tabpanel">
 
@@ -670,8 +670,8 @@
         <article class="card col-span-12" id="panel-catalog-filter" style="padding:14px 20px;">
           <div class="catalog-filter-bar">
             <div class="filter-btn-group" id="catalog-layer-filters" role="group" aria-label="영역별 필터">
-              <button class="filter-pill active" data-layer="ALL" type="button">전체 수집 항목 (18종)</button>
-              <button class="filter-pill" data-layer="L1_L2" type="button">무선 신호·전파 품질 (8종)</button>
+              <button class="filter-pill active" data-layer="ALL" type="button">전체 수집 항목 (21종)</button>
+              <button class="filter-pill" data-layer="L1_L2" type="button">무선 신호·전파 품질 (11종)</button>
               <button class="filter-pill" data-layer="L3_L4" type="button">네트워크·소켓 전송 (6종)</button>
               <button class="filter-pill" data-layer="L7_SYS" type="button">상위 관제·시스템 상태 (4종)</button>
             </div>
@@ -683,7 +683,7 @@
               <button class="filter-pill" data-loc="BOTH" type="button">AGV/AMR + ACS 양단 공통</button>
             </div>
 
-            <input type="search" id="catalog-search-input" class="search-input" placeholder="항목명(신호 세기, RSSI, 대기열), 수집 명령어 검색..." aria-label="수집 항목 검색" />
+            <input type="search" id="catalog-search-input" class="search-input" placeholder="항목명(MIMO, 안테나, 채널, 신호 품질, RSSI, 대기열), 수집 명령어 검색..." aria-label="수집 항목 검색" />
           </div>
         </article>
       </div>
@@ -695,14 +695,14 @@
           <div class="card-header">
             <div class="card-title-group">
               <span class="title-accent-bar"></span>
-              <h2 class="text-h2">AGV/AMR 및 ACS 전용 수집 항목 일람표 (<span id="catalog-count-label">18</span>종 • 스크롤 시 상단 제목 줄 고정)</h2>
+              <h2 class="text-h2">AGV/AMR 및 ACS 전용 수집 항목 일람표 (<span id="catalog-count-label">21</span>종 • 스크롤 시 상단 제목 줄 고정)</h2>
             </div>
             <span class="text-caption">행을 클릭하면 우측에 상세 설명이 표시됩니다</span>
           </div>
 
           <!-- .catalog-table-scroll: 스크롤 시 thead th가 상단에 고정(Sticky)됨 -->
           <div class="catalog-table-scroll">
-            <table class="telemetry-table" aria-label="18종 네트워크 수집 지표 명세 테이블">
+            <table class="telemetry-table" aria-label="21종 네트워크 수집 지표 명세 테이블">
               <thead>
                 <tr>
                   <th class="text-center">번호</th>
@@ -724,7 +724,7 @@
           <div class="card-header">
             <div class="card-title-group">
               <span class="title-accent-bar indigo"></span>
-              <h2 class="text-h2">선택 항목 상세 설명 (8대 필수 조사항목)</h2>
+              <h2 class="text-h2">선택 항목 상세 설명 (의미 · 문제 상황 · 사전 감지 · 사후 분석)</h2>
             </div>
             <span class="badge badge-sky mono" id="detail-metric-id">M01 • RSSI</span>
           </div>
@@ -733,13 +733,13 @@
         </article>
       </div>
 
-      <!-- Row 3: 18종 전체 항목 한눈에 보기 카드 목록 -->
+      <!-- Row 3: 21종 전체 항목 한눈에 보기 카드 목록 -->
       <div class="grid-12">
         <article class="card col-span-12">
           <div class="card-header">
             <div class="card-title-group">
               <span class="title-accent-bar ok"></span>
-              <h2 class="text-h2">전체 18종 수집 항목 한눈에 보기 카드 목록 (AGV/AMR 및 ACS 직접 수집 항목)</h2>
+              <h2 class="text-h2">전체 21종 수집 항목 한눈에 보기 카드 목록 (AGV/AMR 및 ACS 직접 수집 항목)</h2>
             </div>
             <span class="text-caption">카드를 클릭하면 상단 상세 설명 창에서 수집 명령어와 예시 코드를 볼 수 있습니다</span>
           </div>
@@ -1015,7 +1015,7 @@
                 <span class="badge badge-sky">필수 개발</span>
               </div>
               <p class="text-body" style="font-size:0.8rem;">
-                AGV 내부에서 1초마다 무선 상태(<code>M01~M08</code>), 네트워크/소켓 상태(<code>M09~M14</code>), CPU 사용률 및 주행 좌표(<code>M17~M18</code>)를 읽어 메모리 내 최근 300초(5분) 순환 기록장에 보관합니다. (평시 외부 전송 없음).
+                AGV 내부에서 1초마다 무선 상태(<code>M01~M08</code>, <code>M19~M21: MIMO 안테나별 신호·채널 정보·링크 품질</code>), 네트워크/소켓 상태(<code>M09~M14</code>), CPU 사용률 및 주행 좌표(<code>M17~M18</code>)를 읽어 메모리 내 최근 300초(5분) 순환 기록장에 보관합니다. (평시 외부 전송 없음).
               </p>
             </div>
 
@@ -1117,14 +1117,14 @@
             </div>
           </div>
 
-          <!-- 수집 위치별 18종 지표 분담 요약 박스 -->
+          <!-- 수집 위치별 21종 지표 분담 요약 박스 -->
           <div class="detail-section-box" style="margin-top:12px;">
             <div class="detail-section-label">
-              <span>📋 18종 수집 항목의 AGV/AMR vs ACS 담당 분장 요약</span>
+              <span>📋 21종 수집 항목의 AGV/AMR vs ACS 담당 분장 요약</span>
               <span class="badge badge-ok">AP/WLC 장비 접근 불필요</span>
             </div>
             <div class="mono" style="font-size:0.76rem; display:flex; flex-direction:column; gap:5px;">
-              <div>• <strong>AGV/AMR 단독 수집 (9종)</strong>: <code>M01(신호세기)</code>, <code>M02(SNR)</code>, <code>M03(주변잡음)</code>, <code>M04(연결속도)</code>, <code>M05(무선재시도)</code>, <code>M06(비콘놓침)</code>, <code>M07(AP변경시간)</code>, <code>M08(채널혼잡도)</code>, <code>M09(게이트웨이응답)</code>, <code>M17(AGV CPU)</code></div>
+              <div>• <strong>AGV/AMR 단독 수집 (13종)</strong>: <code>M01(신호세기)</code>, <code>M02(SNR)</code>, <code>M03(주변잡음)</code>, <code>M04(연결속도/MCS)</code>, <code>M05(무선재시도)</code>, <code>M06(비콘놓침)</code>, <code>M07(AP변경시간)</code>, <code>M08(채널혼잡도)</code>, <code>M09(게이트웨이응답)</code>, <code>M17(AGV CPU)</code>, <code>M19(MIMO 안테나별 신호·편차)</code>, <code>M20(주파수·채널·대역폭)</code>, <code>M21(링크 종합 품질)</code></div>
               <div>• <strong>AGV/AMR + ACS 양단 공통 수집 (7종)</strong>: <code>M10(응답흔들림)</code>, <code>M11(소켓재전송)</code>, <code>M12(소켓왕복시간)</code>, <code>M13(송신대기열)</code>, <code>M14(수신대기열)</code>, <code>M16(재연결횟수/사유)</code>, <code>M18(AGV위치/속도)</code></div>
               <div>• <strong>ACS 서버 단독 수집 (1종)</strong>: <code>M15(30초 정기 보고 도착 시간 간격)</code></div>
             </div>

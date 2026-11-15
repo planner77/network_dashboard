@@ -7,10 +7,10 @@
 FROM python:3.11-slim
 
 LABEL org.opencontainers.image.title="AGV/AMR-ACS Wireless Network Telemetry Dashboard" \
-      org.opencontainers.image.description="AGV/AMR & ACS 18-metric wireless network pre-detection & post-mortem RCA mock-up dashboard" \
+      org.opencontainers.image.description="AGV/AMR & ACS 21-metric wireless network pre-detection & post-mortem RCA mock-up dashboard (including MIMO per-antenna RSSI, channel info & link quality)" \
       org.opencontainers.image.source="https://github.com/planner77/network_dashboard" \
       org.opencontainers.image.url="https://github.com/planner77/network_dashboard" \
-      org.opencontainers.image.version="1.1.2"
+      org.opencontainers.image.version="1.1.3"
 
 # Prevent python from writing pyc files and buffering stdout/stderr
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -31,8 +31,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application source code and documentation
+# Copy application source code, tests, and documentation
 COPY app/ ./app/
+COPY tests/ ./tests/
 COPY docs/ ./docs/
 COPY AGENTS.md DESIGN.md README.md ./
 

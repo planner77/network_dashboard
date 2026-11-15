@@ -58,8 +58,8 @@ LAYER_L34 = "L3/L4 네트워크·전송"
 LAYER_L7 = "L7 응용·시스템"
 
 LAYERS: List[Dict[str, Any]] = [
-    {"layer_code": "L1_L2", "layer": LAYER_L12, "name_en": "Wi-Fi Physical & Data Link Layer", "count": 8,
-     "metric_ids": ["M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08"]},
+    {"layer_code": "L1_L2", "layer": LAYER_L12, "name_en": "Wi-Fi Physical & Data Link Layer", "count": 11,
+     "metric_ids": ["M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M19", "M20", "M21"]},
     {"layer_code": "L3_L4", "layer": LAYER_L34, "name_en": "Network & Transport Layer", "count": 6,
      "metric_ids": ["M09", "M10", "M11", "M12", "M13", "M14"]},
     {"layer_code": "L7_SYS", "layer": LAYER_L7, "name_en": "Application & Host System Layer", "count": 4,
@@ -127,6 +127,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "AGV 내부에서 1초마다 신호 세기를 읽어 상시 기록장에 보관하고, 직전 5초 값으로 초당 하락 속도(기울기)를 함께 계산합니다.",
         },
         "analysis_usage": {
+            "problem_scenario": "AGV가 이동하며 기지국(AP)과 멀어지거나 대형 철제 선반·기둥 뒤쪽(전파 음영 구역)으로 진입해 수신 전파가 급격히 약해지는 상황, 또는 신호가 약해졌는데도 기존 기지국을 놓지 못하는 상황(Sticky Client).",
             "pre_detection": "신호 절대값(< -72dBm)과 5초간 하락 속도(초당 -2.5dBm 이상 급락)를 결합해 전파 음영 구역 진입을 끊김 15~18초 전에 미리 감지 (위험도 가중치 25%).",
             "post_mortem": "끊김 직전 신호 변화 모양(완만한 하락 → 기지국 전환 지연 SCN-01, 급격한 추락 → 전파 음영 구역 SCN-02)으로 원인을 구분하고, 주행 좌표(M18)와 결합해 음영 구역 지도를 생성.",
             "weight": 0.25,
@@ -165,6 +166,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "AGV 무선 랜카드가 읽은 현재 채널 잡음 수치와 수신 신호 세기의 차이를 1초마다 계산해 내부 상시 기록장에 저장합니다.",
         },
         "analysis_usage": {
+            "problem_scenario": "기지국과 가까워 수신 신호 세기(M01)는 -62dBm으로 강해 보이지만, 인근 용접기·고주파 가열기·대형 모터 인버터 가동으로 강한 전파 잡음이 유입되어 실제 통신 신호가 잡음에 묻히는 상황.",
             "pre_detection": "SNR이 20dB 아래로 떨어지면 위험 점수를 높이고(가중치 15%), 신호 세기는 정상인데 SNR만 급락하면 설비 전파 간섭 조기 경보를 발송.",
             "post_mortem": "신호 세기(M01)는 좋은데 SNR만 무너진 끊김 → 용접기·모터 등 주변 설비 전파 간섭(SCN-02)으로 판정하여 기지국 증설이 아닌 채널 변경 조치를 안내.",
             "weight": 0.15,
@@ -205,6 +207,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "AGV가 다른 채널을 탐색하지 않고 현재 연결된 채널([in use])의 잡음 값만 읽으므로 통신 끊김이나 지연이 전혀 없습니다.",
         },
         "analysis_usage": {
+            "problem_scenario": "공장 내 아크 용접 설비, 플라즈마 절단기, 고주파 유도가열기 등이 가동될 때 광대역 전자파 잡음(EMI)이 방사되어 해당 구역의 무선 채널 바닥 잡음이 -84dBm 이상으로 치솟는 상황.",
             "pre_detection": "잡음 수치가 5초 내 6dB 이상 급상승하면 전파 간섭 구역 진입으로 판단하여 사전 위험 점수에 반영.",
             "post_mortem": "특정 구역이나 설비 가동 시간대에 잡음 수치가 함께 치솟았는지 대조하여 전파 방해(SCN-02) 유입을 증명.",
             "weight": 0.05,
@@ -245,6 +248,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "iw dev wlan0 link 한 줄에서 송수신 속도(Mbps)와 MCS Index가 동시에 조회됩니다.",
         },
         "analysis_usage": {
+            "problem_scenario": "전파 음영이나 간섭으로 무선 에러가 늘어나자, AGV 와이파이 칩셋이 연결을 끊지 않고 버티기 위해 스스로 변조 등급(MCS 7→MCS 0)과 전송 속도(144Mbps→6Mbps)를 단계적으로 낮추는 상황.",
             "pre_detection": "MCS Index가 2 이하로 떨어지거나 무선 연결 속도가 5초 내 절반 이하로 떨어지면 무선 품질 악화 징후로 판단하여 사전 위험 점수에 반영.",
             "post_mortem": "끊김 직전 속도가 최저 수준(MCS 0, 6~12Mbps)까지 떨어졌다면 전파 음영·간섭(SCN-02), 속도와 MCS는 높았는데 끊겼다면 프로그램 응답 지연(SCN-04) 등으로 구분.",
             "weight": 0.05,
@@ -284,6 +288,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "AGV 내부에서 직전 1초 동안의 전송 수 대비 재시도 비율(Tx Retry Rate)과 수신 드롭(Rx Drop)을 계산하여 상시 기록장에 남깁니다.",
         },
         "analysis_usage": {
+            "problem_scenario": "무선 전파 약화·충돌·간섭으로 인해 한 번에 전달되지 못하고 깨지는 무선 프레임이 급증하여, 상위 소켓(TCP)은 아직 모른 채 와이파이 칩셋 혼자 초당 수십 번씩 재전송을 반복하는 상황.",
             "pre_detection": "Tx/Rx Retry Rate가 15%를 넘으면 위험 점수를 크게 높임(가중치 20%). 소켓(TCP) 재전송보다 평균 3~6초 먼저 나타나는 선행 지표.",
             "post_mortem": "재시도 35% 이상 + 신호 급락 → 전파 음영(SCN-02), 재시도 상승 + 신호 양호 + 채널 혼잡도 과다 → 무선 채널 혼잡(SCN-03).",
             "weight": 0.20,
@@ -322,6 +327,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "AGV 무선 드라이버에서 지난 1초 동안 놓친 비콘 횟수를 계산하여 내부 상시 기록장에 기록합니다.",
         },
         "analysis_usage": {
+            "problem_scenario": "AGV가 기존 기지국(AP) 서비스 반경 끝자락을 벗어나거나 철제 장애물 뒤로 들어가, 기지국이 0.1초마다 보내는 생존 확인 신호(비콘)조차 연속으로 놓쳐 기지국 연결 해제(Deauth) 직전에 몰린 상황.",
             "pre_detection": "초당 2회 이상 확인 신호를 놓치는 상태가 3초 이상 이어지면 기지국 연결 해제 임박으로 판단해 사전 경보 발송.",
             "post_mortem": "기지국 변경 직전 확인 신호 놓침 급증 + 기지국 주소(BSSID) 미변경 → 기존 기지국 고착 현상(SCN-01) 판별.",
             "weight": 0.05,
@@ -364,6 +370,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "별도 무선 장비(WLC) 권한 없이도 AGV 내부의 wpa_supplicant 이벤트 시각 차이만으로 기지국 변경 소요 시간과 이전·이후 AP 주소를 정확히 측정합니다.",
         },
         "analysis_usage": {
+            "problem_scenario": "AGV가 구역 경계를 넘어 이동할 때 기존 기지국 신호가 -78dBm 이하로 떨어질 때까지 갈아타지 않거나(Sticky Client), 새 기지국으로 넘어갈 때 보안 재인증 지연으로 200ms~1초 이상 통신 공백이 발생하는 상황.",
             "pre_detection": "신호가 -72dBm 이하로 약해졌는데도 기지국 주소(BSSID)가 바뀌지 않고 유지되면 기지국 고착(Sticky Client) 위험으로 사전 표시.",
             "post_mortem": "끊김 순간 기지국 변경 소요 시간 > 200ms + 확인 신호 놓침 급증 → 기지국 전환(로밍) 실패·지연(SCN-01)으로 확정.",
             "weight": 0.05,
@@ -402,6 +409,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "무선 컨트롤러(WLC) 장비에 접속하지 않고도 AGV 무선 랜카드의 survey 카운터(busy_time / active_time)만으로 현재 채널 혼잡도를 정확히 계산합니다.",
         },
         "analysis_usage": {
+            "problem_scenario": "한 구역의 동일 무선 채널에 여러 대의 AGV, 작업자 무선 바코드 스캐너·태블릿, 인접 기지국 신호가 한꺼번에 몰려 무선 통로 점유율이 65%를 넘고 AGV가 송신 차례를 얻지 못하는 상황.",
             "pre_detection": "채널 혼잡도가 65%를 넘어 10초 이상 지속되면 무선 통로 과밀 위험으로 사전 감지 점수에 반영.",
             "post_mortem": "신호 세기(M01)도 좋고 잡음(M03)도 없는데 혼잡도가 75%를 넘고 응답 시간이 급증한 경우 → 무선 채널 과부하(SCN-03)로 확정.",
             "weight": 0.10,
@@ -446,6 +454,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "AGV에서 기본 게이트웨이 IP로 비동기 Ping을 보내 응답 지연 시간(Ping Latency)과 패킷 손실률(Packet Loss)을 동시에 측정합니다.",
         },
         "analysis_usage": {
+            "problem_scenario": "무선 전파 약화나 채널 혼잡으로 인해 AGV에서 첫 번째 유선 관문(게이트웨이 스위치)까지 가는 순수 무선 구간에서부터 응답이 50ms 이상 지연되거나 패킷이 유실되는 상황.",
             "pre_detection": "Ping Latency가 평소보다 3배 이상 길어지거나 Packet Loss가 발생하면 무선 구간 지연·손실 누적으로 판단해 사전 위험 점수에 반영.",
             "post_mortem": "Ping Latency(< 10ms)와 Packet Loss(0%)가 모두 정상인데 ACS 보고만 멈춘 경우 → 무선이 아닌 통신 프로그램 일시 멈춤(SCN-04)으로 판정.",
             "weight": 0.05,
@@ -482,6 +491,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "AGV와 ACS 양쪽에서 응답 시간의 변화 폭을 계산하여 무선 흔들림을 감시합니다.",
         },
         "analysis_usage": {
+            "problem_scenario": "동일 채널 내 다수 단말의 전송 경합(CSMA/CA 대기)이나 로밍 탐색으로 인해, 패킷마다 도착 시간이 3ms였다가 85ms로 튀는 등 응답 간격이 심하게 출렁이는 상황.",
             "pre_detection": "흔들림 폭이 20ms를 넘어 반복되면 평균 응답 시간이 오르기 전에 통신 불안정 시작을 조기 감지.",
             "post_mortem": "흔들림 폭 100ms 이상 + 채널 혼잡도 과다 → 무선 채널 혼잡(SCN-03), 흔들림 정상 + 수신 대기열 적체 → 프로그램 일시 멈춤(SCN-04).",
             "weight": 0.05,
@@ -522,6 +532,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "AGV와 ACS 통신 프로그램이 열려 있는 소켓에서 직접 재전송 횟수를 1초마다 읽어 기록합니다.",
         },
         "analysis_usage": {
+            "problem_scenario": "무선 구간 재시도(M05)로도 복구하지 못한 패킷 손실이 상위 TCP 소켓까지 전파되어, OS 커널이 확인 응답(ACK)을 받지 못하고 재전송 대기 시간(RTO)을 두 배씩 늘리며 연결 끊김 직전에 이른 상황.",
             "pre_detection": "초당 2회 이상 소켓 재전송 발생 시 위험 점수를 크게 높임(가중치 25%). 수 초 내 정기 보고 중단을 직접 예고.",
             "post_mortem": "끊김 직전 재전송이 전혀 없었다면 무선 손실이 아닌 통신 프로그램 일시 멈춤(SCN-04), 재전송이 급증했다면 무선 구간 문제(SCN-01~03).",
             "weight": 0.25,
@@ -559,6 +570,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "소켓 왕복 시간(M12)에서 게이트웨이 응답 시간(M09)을 뺀 차이가 크면 유선망·프로그램 응답 지연으로 해석합니다.",
         },
         "analysis_usage": {
+            "problem_scenario": "무선 구간 지연 또는 ACS 서버 측 처리 지연으로 인해 실제 제어·상태 보고용 TCP 소켓 패킷이 왕복하는 시간이 평시 5ms에서 60~300ms 이상으로 늘어나는 상황.",
             "pre_detection": "소켓 왕복 시간이 60ms를 넘어 계속 증가하면 전송 계층 위험 점수에 반영.",
             "post_mortem": "게이트웨이 응답 시간(M09)은 정상인데 소켓 왕복 시간만 치솟은 경우 → 상대방 통신 프로그램 응답 지연(SCN-04).",
             "weight": 0.05,
@@ -598,6 +610,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "송신 대기열(Send Queue)이 0으로 비워지지 않고 3초 이상 계속 남아 있는지 여부를 함께 감시합니다.",
         },
         "analysis_usage": {
+            "problem_scenario": "무선 끊김 직전이나 기지국 변경 실패로 인해 상대방 확인 응답(ACK)이 돌아오지 않아, 프로그램이 보낸 상태 보고 데이터가 빠져나가지 못하고 출발지 OS 송신 버퍼에 계속 쌓이는 상황.",
             "pre_detection": "송신 대기열(Send Queue)에 데이터가 3초 이상 쌓여 있으면 위험 점수를 높임(가중치 15%). 통신 단절 직전 상태를 직접 포착.",
             "post_mortem": "송신 대기열 누적 + 소켓 재전송 증가 → 무선 경로 손실(SCN-01~03), 송신 대기열은 작고 수신 대기열만 급증 → 프로그램 일시 멈춤(SCN-04).",
             "weight": 0.15,
@@ -636,6 +649,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "통신 스레드가 멈추더라도 값을 기록할 수 있도록 별도의 가벼운 감시 스레드에서 1초마다 조회합니다.",
         },
         "analysis_usage": {
+            "problem_scenario": "와이파이 신호는 100% 정상이라 패킷이 AGV(또는 ACS) OS까지 잘 도착했으나, 자율주행 연산 폭주·데드락·GC 멈춤 등으로 통신 프로그램이 소켓에서 데이터를 읽어가지 못해 멈춰 있는 상황.",
             "pre_detection": "수신 대기열(Recv Queue)이 2KB를 넘어 계속 쌓이면 프로그램 응답 지연으로 통신이 막히기 전에 경보 발송.",
             "post_mortem": "무선 신호·게이트웨이 응답 정상 + 수신 대기열 급증 + CPU 과부하 → 통신 프로그램 일시 멈춤·시스템 병목(SCN-04)으로 확정.",
             "weight": 0.10,
@@ -678,6 +692,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "ACS 서버가 1초마다 경과 시간을 확인하여 31초 초과 시 지연(DELAYED), 45초 초과 시 Heartbeat Timeout(DISCONNECTED)으로 판정합니다.",
         },
         "analysis_usage": {
+            "problem_scenario": "무선 재전송 지연이나 프로그램 응답 지연으로 인해 원래 30.0초마다 정확히 도착해야 할 정기 상태 보고가 33초, 38초로 점점 밀리다가 결국 45초 응답 제한 시간(Heartbeat Timeout)을 넘겨 제어 불능에 빠지는 상황.",
             "pre_detection": "보고 도착 간격이 31초를 넘어 계속 밀리는 AGV를 Heartbeat Timeout 임박 대상으로 조기 표시.",
             "post_mortem": "기존 30초 방식에서 Heartbeat Timeout을 언제 인지했는지 보여주는 기준선으로, 1초 사전 감지가 얼마나 빨리 경보했는지(선행 시간) 비교.",
             "weight": 0.0,
@@ -718,6 +733,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "TCP Socket State 변화(ESTABLISHED → SYN_SENT/CLOSED)와 끊김 사유 코드를 기록하고, 재연결 직후 끊김 전후 120초 상세 기록을 ACS로 일괄 전송합니다.",
         },
         "analysis_usage": {
+            "problem_scenario": "무선 단절로 재전송 제한 시간을 초과해 연결이 끊어지거나(ETIMEDOUT), 상대방 프로세스 재시작·비정상 종료로 인해 소켓이 CLOSE_WAIT이나 강제 종료(ECONNRESET) 상태에 빠지는 상황.",
             "pre_detection": "TCP Socket State가 CLOSE_WAIT에 머물거나 최근 1시간 내 재연결이 3회 이상 발생한 AGV는 사전 경보 기준을 더 민감하게 적용.",
             "post_mortem": "ETIMEDOUT + SYN_SENT 반복 → 무선 구간 단절, CLOSE_WAIT/ECONNRESET → 통신 프로그램 종료·강제 리셋으로 원인을 명확히 구분.",
             "weight": 0.0,
@@ -758,6 +774,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "전체 CPU 사용률과 통신 수신 처리(NET_RX SoftIRQ) 비중을 함께 기록하여 연산 과부하를 감시합니다.",
         },
         "analysis_usage": {
+            "problem_scenario": "복잡한 교차로나 장애물 회피 구간에서 AGV 자율주행(3D 라이다·SLAM·카메라) 연산이 CPU를 95% 이상 독점하여, 같은 컴퓨터에서 도는 ACS 통신 프로그램이 스케줄링되지 못하고 멈추는 상황.",
             "pre_detection": "CPU 사용률이 85%를 넘고 수신 대기열(M14)이 쌓이기 시작하면 통신 프로그램 일시 멈춤 사전 경보 발송.",
             "post_mortem": "CPU > 92% + 수신 대기열 급증 + 무선 신호 정상 → 통신 프로그램 일시 멈춤·시스템 과부하(SCN-04)로 확정 (불필요한 무선 공사 방지).",
             "weight": 0.10,
@@ -800,9 +817,149 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "공장 바닥을 격자 구역으로 나누어 각 위치별 최저 신호 세기·최고 위험 점수를 집계하면 전파 음영 지도가 완성됩니다.",
         },
         "analysis_usage": {
+            "problem_scenario": "공장 내 특정 철제 랙 통로나 대형 설비 뒤편을 지날 때마다 반복적으로 통신이 끊기는데, 통신 로그에 위치 좌표가 없어 현장 엔지니어가 어느 구역의 기지국을 손봐야 할지 알 수 없는 상황.",
             "pre_detection": "과거 통신 불안정이 반복된 상습 음영 좌표에 AGV가 접근하면 진입 전에 미리 감속 또는 기지국 전환 유도.",
             "post_mortem": "끊김 발생 좌표를 공장 2D 지도에 표시하여 전파 음영 구역(SCN-02) 위치를 정확히 특정.",
             "weight": 0.0,
+        },
+    },
+    # ======================= L1/L2 확장 — MIMO 안테나별 신호·채널 정보·링크 품질 (AGV/AMR 자체 수집 3종) =======================
+    {
+        "id": "M19",
+        "key": "chain_rssi_diff",
+        "name_ko": "MIMO 안테나별 신호 세기 및 편차 (Per-Antenna RSSI & Chain Imbalance)",
+        "name_en": "MIMO Per-Antenna RSSI (Chain 0 / Chain 1) & Imbalance",
+        "abbr": "MIMO RSSI",
+        "layer": LAYER_L12,
+        "layer_code": "L1_L2",
+        "description": (
+            "2개 이상의 무선 안테나(2×2 MIMO)를 장착한 AGV/AMR에서 안테나 1번(Chain 0)과 안테나 2번(Chain 1)이 각각 수신하는 개별 신호 세기(dBm)와 "
+            "두 안테나 간의 신호 차이(편차, dB), 그리고 실제 동작 중인 공간 스트림 수(NSS 1x1 / 2x2)입니다. "
+            "기존처럼 합산 신호 세기(M01) 하나만 보면 한쪽 안테나가 고장 나거나 차체에 가려져도 정상처럼 보이는 치명적 사각지대를 해결합니다."
+        ),
+        "unit": "dBm / 편차 dB",
+        "thresholds": {
+            "normal": "안테나 편차 < 5 dB (2x2 정상)",
+            "warning": "편차 5 ~ 9 dB (한쪽 안테나 약화)",
+            "critical": "편차 ≥ 10 dB 또는 1x1(NSS 1) 강등",
+        },
+        "threshold_levels": {"direction": "lower_is_better", "warning": 5.0, "critical": 10.0},
+        "display_range": [0, 25],
+        "collection_location": "AGV/AMR",
+        "interval_local": "1s",
+        "interval_report": "30초 정기 보고 시 요약 데이터 동봉 전송",
+        "recommended_interval": "AGV 내부 1초 단위 상시 기록장 (최근 5분 순환 보관) / 30초 정기 보고 시 요약 데이터 동봉 전송 (안테나별 최저 신호·최대 편차 dB)",
+        "system_load": _load(_LOAD_VERY_LOW, "0 B/s (AGV 내부 드라이버 상태 조회, 30초 보고 시 3 Bytes 동봉)",
+                             "AGV 무선 드라이버(nl80211 station dump)에서 M05·M06 조회 시 안테나별 신호 배열(chain signal)을 동시에 읽음"),
+        "collection_method": {
+            "interface": "AGV nl80211 NL80211_STA_INFO_CHAIN_SIGNAL (iw dev wlan0 station dump)",
+            "command": "iw dev wlan0 station dump | grep -E 'signal:|tx bitrate:'   # 예: signal: -61 [-62, -78] dBm",
+            "code_snippet": (
+                "import subprocess, re\n"
+                "out = subprocess.run(['iw','dev','wlan0','station','dump'],capture_output=True,text=True).stdout\n"
+                "m = re.search(r'signal:\\s+(-?\\d+)\\s+\\[(-?\\d+),\\s*(-?\\d+)\\]', out)\n"
+                "if m:\n"
+                "    total_rssi, ch0_rssi, ch1_rssi = map(int, m.groups())\n"
+                "    chain_diff_db = abs(ch0_rssi - ch1_rssi)  # 안테나 간 신호 편차(dB)"
+            ),
+            "detail": "대괄호 안의 첫 번째 값(Chain 0 = 안테나 1번)과 두 번째 값(Chain 1 = 안테나 2번)을 각각 기록하고 두 값의 차이(|Chain0 - Chain1|)를 1초마다 산출합니다.",
+        },
+        "analysis_usage": {
+            "problem_scenario": "주행 진동으로 인해 AGV의 한쪽 안테나 케이블(SMA 커넥터)이 헐거워지거나 단선된 상황, 또는 AGV가 커브 구간에서 회전할 때 한쪽 안테나가 AGV 자체 철제 구조물·리프트에 가려지는 상황 (정상인 나머지 안테나 하나 때문에 합산 신호 세기 M01은 -62dBm으로 멀쩡해 보여 기존 방식으로는 원인을 절대 찾을 수 없음).",
+            "pre_detection": "주행 중 두 안테나(Chain 0 vs Chain 1)의 신호 세기 편차가 지속적으로 10dB 이상 벌어지거나 MIMO 공간 스트림이 2x2(NSS 2)에서 1x1(NSS 1)로 강등되면, 통신이 완전히 끊어지기 전에 [AGV 안테나 케이블 불량/차체 가림 사전 정비 알림]을 즉시 발송.",
+            "post_mortem": "특정 지점에서 AGV가 방향을 회전할 때마다 통신이 끊어진 사고에서, 끊김 직전 안테나 1번(Chain 0: -63dBm)은 정상인데 안테나 2번(Chain 1: -86dBm)만 급락한 기록을 확인하여 무선 기지국(AP) 문제가 아닌 'AGV 안테나 장착 위치(차체 가림) 또는 안테나 하드웨어 결함'임을 명확히 규명.",
+            "weight": 0.15,
+        },
+    },
+    {
+        "id": "M20",
+        "key": "wifi_channel_info",
+        "name_ko": "무선 주파수 대역·채널 번호 및 대역폭 (Wi-Fi Band, Channel & Width)",
+        "name_en": "Wi-Fi Frequency Band (2.4/5GHz), Channel Number & Width",
+        "abbr": "Band/Ch",
+        "layer": LAYER_L12,
+        "layer_code": "L1_L2",
+        "description": (
+            "AGV가 현재 연결된 무선 기지국(AP)의 주파수 대역(2.4GHz 또는 5GHz), 채널 번호(예: Ch.36, Ch.40, Ch.149), 그리고 주파수 통로 폭(20/40/80MHz)입니다. "
+            "무선 채널 혼잡도(M08)가 높거나 전파 간섭(M03)이 발생했을 때 '과연 어느 주파수 대역의 몇 번 채널에서 문제가 생겼는지'를 특정해 주는 필수 기준 정보입니다."
+        ),
+        "unit": "GHz / Ch / MHz",
+        "thresholds": {
+            "normal": "5 GHz 비간섭 채널 (Ch.36~165, 20/40MHz)",
+            "warning": "5 GHz DFS 채널 또는 다수 AGV 동일 채널 집중",
+            "critical": "2.4 GHz 대역(Ch.1~13) 연결 강등",
+        },
+        "threshold_levels": None,
+        "display_range": None,
+        "collection_location": "AGV/AMR",
+        "interval_local": "1s",
+        "interval_report": "30초 정기 보고 시 요약 데이터 동봉 전송",
+        "recommended_interval": "AGV 내부 1초 단위 상시 기록장 (채널 변경 즉시 기록) / 30초 정기 보고 시 요약 데이터 동봉 전송 (현재 대역·채널 번호·대역폭)",
+        "system_load": _load(_LOAD_VERY_LOW, "0 B/s (AGV 내부 인터페이스 정보 조회, 30초 보고 시 2 Bytes 동봉)",
+                             "AGV 커널 무선 인터페이스 상태(iw dev wlan0 info)에서 주파수와 채널 번호만 읽음"),
+        "collection_method": {
+            "interface": "AGV nl80211 NL80211_CMD_GET_INTERFACE (iw dev wlan0 info)",
+            "command": "iw dev wlan0 info | grep channel   # 예: channel 36 (5180 MHz), width: 40 MHz",
+            "code_snippet": (
+                "import subprocess, re\n"
+                "out = subprocess.run(['iw','dev','wlan0','info'],capture_output=True,text=True).stdout\n"
+                "m = re.search(r'channel\\s+(\\d+)\\s+\\((\\d+)\\s+MHz\\),\\s+width:\\s+(\\d+)\\s+MHz', out)\n"
+                "if m:\n"
+                "    ch_num, freq_mhz, width_mhz = map(int, m.groups())\n"
+                "    band = '5GHz' if freq_mhz >= 5000 else '2.4GHz'"
+            ),
+            "detail": "주파수(MHz)를 통해 2.4GHz(2412~2484MHz)인지 5GHz(5180~5825MHz)인지 판별하고 채널 번호와 대역폭(20/40/80MHz)을 함께 기록합니다.",
+        },
+        "analysis_usage": {
+            "problem_scenario": "5GHz 고속 대역으로 연결되어야 할 AGV가 이동 중 전파 도달 거리가 긴 2.4GHz 대역(블루투스·작업자 스캐너·설비 간섭이 극심한 저속 대역)으로 잘못 붙어버리는 상황(Band Steering 실패), 또는 인접 기지국들이 같은 채널 번호로 설정되어 동일 채널 간섭이 발생하는 상황.",
+            "pre_detection": "AGV가 주행 중 5GHz 대역에서 간섭에 취약한 2.4GHz 대역(Ch.1~13)으로 전환되는 즉시, 실제 통신 지연·끊김이 발생하기 전에 [비권장 저속 대역(2.4GHz) 진입 주의 알림]을 발송하고 5GHz 기지국 재탐색을 유도.",
+            "post_mortem": "끊김 사고 당시의 채널 번호(M20)와 채널 혼잡도(M08), 기지국 주소(M07)를 대조하여 '특정 구역에서 여러 대의 AGV가 모두 5GHz 149번 채널 하나에 몰려 과부하(SCN-03)로 끊어졌음'을 증명하고 현장 AP 채널 분산 설정 근거로 활용.",
+            "weight": 0.10,
+        },
+    },
+    {
+        "id": "M21",
+        "key": "link_quality",
+        "name_ko": "무선 링크 종합 품질 지수 (Wi-Fi Link Quality)",
+        "name_en": "Wi-Fi Driver Link Quality (0~70 / 0~100%)",
+        "abbr": "Link Qual",
+        "layer": LAYER_L12,
+        "layer_code": "L1_L2",
+        "description": (
+            "AGV 리눅스 무선 드라이버(/proc/net/wireless)가 수신 신호 세기, 잡음 수준, 최근 프레임 전송 성공 상태를 종합하여 "
+            "70점 만점(또는 0~100% 백분율)으로 환산해 주는 직관적인 무선 연결 품질 점수입니다. "
+            "-68dBm이나 22dB 같은 공학 단위에 익숙하지 않은 현장 운영자도 현재 무선 연결이 얼마나 건강한지 백분율(0~100%)로 즉시 파악할 수 있습니다."
+        ),
+        "unit": "% (점/70)",
+        "thresholds": {
+            "normal": "≥ 75% (53/70 이상)",
+            "warning": "55 ~ 74% (39~52/70)",
+            "critical": "≤ 54% (38/70 이하)",
+        },
+        "threshold_levels": {"direction": "higher_is_better", "warning": 74.5, "critical": 54.5},
+        "display_range": [0, 100],
+        "collection_location": "AGV/AMR",
+        "interval_local": "1s",
+        "interval_report": "30초 정기 보고 시 요약 데이터 동봉 전송",
+        "recommended_interval": "AGV 내부 1초 단위 상시 기록장 (최근 5분 순환 보관) / 30초 정기 보고 시 요약 데이터 동봉 전송 (최저·평균 링크 품질 %)",
+        "system_load": _load(_LOAD_VERY_LOW, "0 B/s (M01 조회 시 같은 파일에서 동시 읽기, 30초 보고 시 1 Byte 동봉)",
+                             "/proc/net/wireless 파일의 세 번째 컬럼(link)을 M01(level)과 동시에 읽으므로 추가 CPU/통신 부하 0%"),
+        "collection_method": {
+            "interface": "AGV Linux /proc/net/wireless (link 컬럼, 0~70 스케일)",
+            "command": "awk 'NR==3 {gsub(/\\./,\"\",$3); printf \"%.1f%% (%s/70)\\n\", ($3/70)*100, $3}' /proc/net/wireless",
+            "code_snippet": (
+                "with open('/proc/net/wireless') as f:\n"
+                "    cols = f.readlines()[2].split()\n"
+                "    raw_link = float(cols[2].rstrip('.'))      # 예: 63.0 (70점 만점)\n"
+                "    link_quality_pct = round(raw_link / 70.0 * 100.0, 1)  # 90.0 %"
+            ),
+            "detail": "/proc/net/wireless 한 줄에서 링크 품질(M21, link)과 수신 신호 세기(M01, level)를 한 번에 읽어 상시 기록장에 저장합니다.",
+        },
+        "analysis_usage": {
+            "problem_scenario": "공장 내 좁은 철제 랙 통로나 대형 금속 설비 사이를 주행할 때 전파가 철판에 여러 번 반사되어 들어오는 다중 경로 난반사(Multipath Fading)가 발생하여, 신호 세기(M01) 숫자는 비교적 높아 보이는데 실제 전파 파형이 깨져 통신 안정성이 급락하는 상황.",
+            "pre_detection": "링크 종합 품질 지수가 74%(52/70) 이하로 떨어지거나 5초 동안 15%p 이상 급감하면, 현장 관제 화면에 직관적인 [무선 링크 품질 저하 주의] 사전 경고를 표시.",
+            "post_mortem": "끊김 직전 수신 신호 세기(M01: -63dBm)는 양호했으나 링크 종합 품질(M21: 48%)과 재시도율(M05)만 나빴던 경우, 단순 거리 부족이 아니라 철제 구조물에 의한 전파 난반사 및 파형 왜곡(SCN-02)이 원인임을 판별.",
+            "weight": 0.10,
         },
     },
 ]
@@ -2036,12 +2193,12 @@ ROLE_ACTION_PLANS: Dict[str, Any] = {
         "role": "AGV/AMR 담당자",
         "role_title": "AGV/AMR 담당자가 해야 할 일",
         "role_subtitle": "로봇 온보드 소프트웨어(통신 에이전트) 및 무선 랜카드 설정 담당",
-        "owned_metric_ids": ["M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08",
+        "owned_metric_ids": ["M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M19", "M20", "M21",
                              "M09", "M10", "M11", "M12", "M13", "M14", "M16", "M17", "M18"],
-        "exclusive_metric_ids": ["M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M09", "M17"],
+        "exclusive_metric_ids": ["M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M19", "M20", "M21", "M09", "M17"],
         "shared_metric_ids": ["M10", "M11", "M12", "M13", "M14", "M16", "M18"],
         "summary": (
-            "AGV 내부에서 1초마다 무선·소켓·CPU·위치 상태(17종)를 읽어 최근 5분 상시 기록장에 보관하고, "
+            "AGV 내부에서 1초마다 무선(MIMO 안테나별 신호·채널·링크 품질 포함)·소켓·CPU·위치 상태(20종)를 읽어 최근 5분 상시 기록장에 보관하고, "
             "평소에는 30초 정기 보고 메시지에 요약 수치를 동봉해 보내며, 위험 시 조기 경고 알림 및 재연결 후 상세 기록 전송을 수행합니다."
         ),
         "tasks": [
@@ -2049,14 +2206,14 @@ ROLE_ACTION_PLANS: Dict[str, Any] = {
                 "step": 1,
                 "title": "1. AGV 내부 1초 단위 상시 기록장 (최근 5분 순환 보관) 기능 구현",
                 "what_to_do": (
-                    "로봇 내부에서 1초마다 무선 상태(M01~M08), 소켓 상태(M09~M14), 시스템·위치(M17~M18)를 읽어 "
+                    "로봇 내부에서 1초마다 무선 상태(M01~M08, M19~M21), 소켓 상태(M09~M14), 시스템·위치(M17~M18)를 읽어 "
                     "메모리 내 최근 300초(5분) 상시 기록장에 보관합니다."
                 ),
                 "how_to_implement": (
                     "Linux 기본 파일(/proc/net/wireless, /proc/stat)과 명령어(iw, ss -ti, ioctl SIOCOUTQ/SIOCINQ)를 "
                     "별도 경량 스레드에서 1초 주기로 실행하여 고정 길이 순환 배열(300칸, 약 30KB)에 기록 (평시 외부 전송 없음 → 무선 부하 0%)."
                 ),
-                "related_metrics": ["M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08",
+                "related_metrics": ["M01", "M02", "M03", "M04", "M05", "M06", "M07", "M08", "M19", "M20", "M21",
                                     "M09", "M10", "M11", "M12", "M13", "M14", "M17", "M18"],
                 "expected_effect": "통신이 끊어지는 순간에도 로봇 내부에는 1초 단위 상태 변화가 빠짐없이 보존됨",
             },

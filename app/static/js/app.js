@@ -480,8 +480,8 @@
     {
       tab: "tab-catalog",
       targetSelector: "#panel-catalog-table",
-      title: "7단계: AGV/AMR과 ACS에서 수집하는 18종 상태 항목 백과사전",
-      body: "3번 탭에는 별도의 무선 공유기(AP) 장비 접근 권한 없이도 오직 AGV/AMR과 ACS 서버 양단에서만 직접 수집할 수 있는 18가지 항목의 상세 설명, 정상/위험 기준값, 권장 주기, 시스템 부담, 실제 수집 명령어가 정리되어 있습니다.",
+      title: "7단계: AGV/AMR과 ACS에서 수집하는 21종 상태 항목 백과사전",
+      body: "3번 탭에는 별도의 무선 공유기(AP) 장비 접근 권한 없이도 오직 AGV/AMR과 ACS 서버 양단에서만 직접 수집할 수 있는 21가지 항목(MIMO 안테나별 신호 세기·편차, 주파수·채널 번호·대역폭, 링크 품질 지수 포함)의 의미, 문제 발생 상황, 사전 감지 및 사후 분석 활용법, 실제 수집 명령어가 정리되어 있습니다.",
       takeaway: "일람표를 아래로 스크롤해도 상단 컬럼 제목 줄이 고정(Sticky Header)되어 편리하게 비교할 수 있습니다."
     },
     {
@@ -1506,7 +1506,9 @@
               <div>• <strong>단위/기준</strong>: ${escapeHtml(m.unit)} (정상 ${escapeHtml(th.normal)} / 위험 ${escapeHtml(th.critical)})</div>
               <div>• <strong>수집위치/주기</strong>: ${escapeHtml(m.collection_location)} | ${escapeHtml(m.recommended_interval)}</div>
               <div>• <strong>수집방법</strong>: <code>${escapeHtml(method.command || method.interface || "")}</code></div>
-              <div style="margin-top:4px; color:var(--accent-primary);">• <strong>활용법</strong>: ${escapeHtml(usage.pre_detection || usage.post_mortem || "")}</div>
+              ${usage.problem_scenario ? `<div style="margin-top:4px; color:var(--status-crit);">• <strong>문제상황</strong>: ${escapeHtml(usage.problem_scenario)}</div>` : ""}
+              <div style="margin-top:3px; color:var(--status-warn);">• <strong>사전감지</strong>: ${escapeHtml(usage.pre_detection || "")}</div>
+              <div style="margin-top:3px; color:var(--accent-primary);">• <strong>사후분석</strong>: ${escapeHtml(usage.post_mortem || "")}</div>
             </div>
           </div>
         `;
@@ -1596,12 +1598,13 @@
 
       <div class="detail-section-box" style="border-left:4px solid var(--status-warn);">
         <div class="detail-section-label">
-          <span>⑧ 사전 감지 및 사후 원인 분석 활용 방법</span>
+          <span>⑧ 문제 발생 상황 · 사전 감지 방법 · 사후 원인 분석 방법</span>
           <span class="badge badge-warn mono">중요도 가중치: ${usage.weight !== undefined ? usage.weight : 0.15}</span>
         </div>
-        <div style="font-size:0.78rem; display:flex; flex-direction:column; gap:6px;">
-          <div><strong class="color-warn">[사전 감지 활용]</strong> ${escapeHtml(usage.pre_detection || "")}</div>
-          <div><strong class="color-accent">[사후 분석 활용]</strong> ${escapeHtml(usage.post_mortem || "")}</div>
+        <div style="font-size:0.78rem; display:flex; flex-direction:column; gap:7px;">
+          ${usage.problem_scenario ? `<div><strong class="color-crit">[문제가 발생할 수 있는 현장 상황]</strong><br/>${escapeHtml(usage.problem_scenario)}</div>` : ""}
+          <div><strong class="color-warn">[문제 발생 전 사전 감지 방법]</strong><br/>${escapeHtml(usage.pre_detection || "")}</div>
+          <div><strong class="color-accent">[문제 발생 후 사후 분석 방법]</strong><br/>${escapeHtml(usage.post_mortem || "")}</div>
         </div>
       </div>
     `;
@@ -2260,7 +2263,40 @@
         recommended_interval: "AGV 내부 기록 1초 / 정기 보고 30초",
         system_load: { level: "없음 (매우 낮음)", cpu_overhead: "0.0% (기존 좌표 참조)", network_overhead: "0 B/s (기존 보고에 포함)", detail: "기존 주행 제어 모듈의 현재 좌표값 그대로 활용" },
         collection_method: { interface: "AGV 주행 제어 공유 메모리", command: "get_current_pose()", code_snippet: "pos_x, pos_y, speed = nav_controller.get_pose()" },
-        analysis_usage: { weight: 0.10, pre_detection: "상습 음영 구역 반경 5m 접근 시 사전 감속 준비", post_mortem: "통신 품질이 나빠진 위치를 공장 2D 지도에 표시하여 전파 음영 지도 자동 완성" }
+        analysis_usage: { weight: 0.10, problem_scenario: "특정 철제 랙 통로를 지날 때마다 통신이 끊기지만 위치 기록이 없어 어느 구역이 음영인지 알 수 없는 상황", pre_detection: "상습 음영 구역 반경 5m 접근 시 사전 감속 준비", post_mortem: "통신 품질이 나빠진 위치를 공장 2D 지도에 표시하여 전파 음영 지도 자동 완성" }
+      },
+      {
+        id: "M19", key: "chain_rssi_diff", name_ko: "MIMO 안테나별 신호 세기 및 편차 (Per-Antenna RSSI & Chain Imbalance)", name_en: "MIMO Per-Antenna RSSI (Chain 0 / Chain 1) & Imbalance",
+        layer: "무선 신호·전파 품질", layer_code: "L1_L2", unit: "dBm / 편차 dB",
+        description: "2개 이상의 무선 안테나(2×2 MIMO)를 장착한 AGV/AMR에서 안테나 1번(Chain 0)과 안테나 2번(Chain 1)이 각각 수신하는 신호 세기(dBm)와 두 안테나 간의 신호 차이(편차, dB)입니다.",
+        thresholds: { normal: "안테나 편차 < 5 dB (2x2 정상)", warning: "편차 5 ~ 9 dB (한쪽 약화)", critical: "편차 ≥ 10 dB 또는 1x1 강등" },
+        collection_location: "AGV/AMR", interval_local: "1초", interval_report: "30초 정기 보고 시 요약 동봉",
+        recommended_interval: "AGV 내부 기록 1초 / 정기 보고 30초 (안테나별 최저 신호·최대 편차)",
+        system_load: { level: "매우 낮음", cpu_overhead: "0.05% 미만", network_overhead: "평시 0 B/s", detail: "nl80211 station dump 조회 시 안테나별 신호 배열 동시 수집" },
+        collection_method: { interface: "AGV nl80211 STA_INFO_CHAIN_SIGNAL", command: "iw dev wlan0 station dump | grep 'signal:'", code_snippet: "# signal: -61 [-62, -78] dBm\nchain_diff_db = abs(ch0_rssi - ch1_rssi)" },
+        analysis_usage: { weight: 0.15, problem_scenario: "주행 진동으로 한쪽 안테나 케이블(SMA 커넥터)이 풀리거나 단선된 경우, 또는 AGV 회전 시 한쪽 안테나가 차체 철판에 가려지는 상황(합산 RSSI M01은 정상처럼 보임)", pre_detection: "두 안테나 신호 차이가 10dB 이상 지속되거나 1x1로 강등되면 끊김 전에 [안테나 불량/가림 사전 정비 알림] 발송", post_mortem: "회전 구간마다 끊긴 사고에서 Chain 0은 정상인데 Chain 1만 급락했음을 확인해 AGV 안테나 결함/장착 위치 문제 규명" }
+      },
+      {
+        id: "M20", key: "wifi_channel_info", name_ko: "무선 주파수 대역·채널 번호 및 대역폭 (Wi-Fi Band, Channel & Width)", name_en: "Wi-Fi Frequency Band (2.4/5GHz), Channel Number & Width",
+        layer: "무선 신호·전파 품질", layer_code: "L1_L2", unit: "GHz / Ch / MHz",
+        description: "AGV가 현재 연결된 무선 기지국(AP)의 주파수 대역(2.4GHz / 5GHz), 채널 번호(예: Ch.36, Ch.149), 주파수 통로 폭(20/40/80MHz)입니다.",
+        thresholds: { normal: "5 GHz 비간섭 채널 (Ch.36~165)", warning: "5 GHz DFS 채널 / 동일 채널 집중", critical: "2.4 GHz 대역(Ch.1~13) 강등" },
+        collection_location: "AGV/AMR", interval_local: "1초", interval_report: "30초 정기 보고 시 요약 동봉",
+        recommended_interval: "AGV 내부 기록 1초 (채널 변경 즉시) / 정기 보고 30초",
+        system_load: { level: "매우 낮음", cpu_overhead: "0.03% 미만", network_overhead: "평시 0 B/s", detail: "iw dev wlan0 info에서 주파수·채널 번호 조회" },
+        collection_method: { interface: "AGV nl80211 GET_INTERFACE", command: "iw dev wlan0 info | grep channel", code_snippet: "# channel 36 (5180 MHz), width: 40 MHz\nband = '5GHz' if freq_mhz >= 5000 else '2.4GHz'" },
+        analysis_usage: { weight: 0.10, problem_scenario: "5GHz로 붙어야 할 AGV가 간섭이 심한 2.4GHz 대역으로 잘못 연결(Band Steering 실패)되거나 인접 기지국들이 동일 채널 번호로 겹쳐 간섭이 발생하는 상황", pre_detection: "주행 중 5GHz에서 2.4GHz 대역(Ch.1~13)으로 강등되는 즉시 [비권장 저속 대역 진입 주의 알림] 발송", post_mortem: "채널 혼잡도(M08)와 결합해 특정 채널 번호(예: Ch.149)에 단말이 편중되어 끊어졌음을 밝히고 AP 채널 분산 근거 제시" }
+      },
+      {
+        id: "M21", key: "link_quality", name_ko: "무선 링크 종합 품질 지수 (Wi-Fi Link Quality)", name_en: "Wi-Fi Driver Link Quality (0~70 / 0~100%)",
+        layer: "무선 신호·전파 품질", layer_code: "L1_L2", unit: "% (점/70)",
+        description: "AGV 리눅스 무선 드라이버(/proc/net/wireless)가 신호 강도, 잡음, 프레임 전송 성공률을 종합해 70점 만점(0~100%)으로 환산한 직관적 무선 연결 품질 점수입니다.",
+        thresholds: { normal: "≥ 75% (53/70 이상)", warning: "55 ~ 74% (39~52/70)", critical: "≤ 54% (38/70 이하)" },
+        collection_location: "AGV/AMR", interval_local: "1초", interval_report: "30초 정기 보고 시 요약 동봉",
+        recommended_interval: "AGV 내부 기록 1초 / 정기 보고 30초 (최저·평균 링크 품질 %)",
+        system_load: { level: "매우 낮음", cpu_overhead: "0.01% 미만", network_overhead: "평시 0 B/s", detail: "/proc/net/wireless에서 M01(RSSI)과 동시에 읽음" },
+        collection_method: { interface: "AGV Linux /proc/net/wireless (link 컬럼)", command: "cat /proc/net/wireless", code_snippet: "link_quality_pct = round(float(cols[2].rstrip('.')) / 70.0 * 100.0, 1)" },
+        analysis_usage: { weight: 0.10, problem_scenario: "철제 랙 사이 다중 경로 난반사(Multipath Fading)로 인해 신호 세기(M01) 숫자는 높아 보이는데 전파 파형이 깨져 실제 링크 안정성이 떨어지는 상황", pre_detection: "링크 품질 지수가 74% 이하로 하락하거나 5초 내 15%p 이상 급감하면 현장 관제사에게 직관적인 품질 저하 경고 표시", post_mortem: "신호 세기(M01)는 양호했는데 링크 품질(M21)만 낮게 기록된 끊김 사고에서 철제 구조물 난반사·파형 왜곡(SCN-02) 원인 판별" }
       }
     ];
   }

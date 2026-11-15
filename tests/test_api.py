@@ -120,9 +120,9 @@ def test_api_overview(client):
 
 def test_api_metrics_catalog(client):
     """
-    Verify GET /api/metrics-catalog returns all 18 metrics with required fields:
+    Verify GET /api/metrics-catalog returns all 21 metrics with required fields:
     id, name_ko, unit, collection_location, recommended_interval,
-    system_load, collection_method, analysis_usage.
+    system_load, collection_method, analysis_usage (including problem_scenario, pre_detection, post_mortem).
     CRITICAL: collection_location MUST be strictly limited to 'AGV/AMR', 'ACS', or 'AGV/AMR, ACS' (no AP/WLC).
     """
     response = client.get("/api/metrics-catalog")
@@ -130,10 +130,10 @@ def test_api_metrics_catalog(client):
     data = response.json()
 
     metrics = data if isinstance(data, list) else data.get("metrics", data.get("catalog", []))
-    assert len(metrics) == 18, f"Expected 18 metrics, received {len(metrics)}"
+    assert len(metrics) == 21, f"Expected 21 metrics, received {len(metrics)}"
 
     metric_ids = [m.get("id") for m in metrics]
-    expected_ids = [f"M{i:02d}" for i in range(1, 19)]
+    expected_ids = [f"M{i:02d}" for i in range(1, 22)]
     for exp_id in expected_ids:
         assert exp_id in metric_ids, f"Metric {exp_id} missing from catalog"
 
@@ -158,9 +158,27 @@ def test_api_metrics_catalog(client):
         loc = m.get("collection_location", "").strip()
         assert loc in valid_locations, f"Metric {m.get('id')} has invalid collection_location: {loc}. Must be AGV/AMR or ACS only."
 
-    # Verify the 7 key metric concepts (MCS Index, Tx/Rx Retry Rate, Ping Latency, Packet Loss, Send/Recv Queue, Heartbeat Timeout, TCP Socket State) are covered
+        usage = m.get("analysis_usage", {})
+        assert usage.get("problem_scenario"), f"Metric {m.get('id')} missing analysis_usage.problem_scenario"
+        assert usage.get("pre_detection"), f"Metric {m.get('id')} missing analysis_usage.pre_detection"
+        assert usage.get("post_mortem"), f"Metric {m.get('id')} missing analysis_usage.post_mortem"
+
+    # Verify key metric concepts including MIMO Per-Antenna RSSI, Channel Info, Link Quality
     joined_catalog = " ".join(f"{m.get('name_ko')} {m.get('name_en')} {m.get('description')}" for m in metrics)
-    for keyword in ["MCS Index", "Tx/Rx Retry Rate", "Ping Latency", "Packet Loss", "Send Queue", "Recv Queue", "Heartbeat Timeout", "TCP Socket State"]:
+    for keyword in [
+        "MCS Index",
+        "Tx/Rx Retry Rate",
+        "Ping Latency",
+        "Packet Loss",
+        "Send Queue",
+        "Recv Queue",
+        "Heartbeat Timeout",
+        "TCP Socket State",
+        "MIMO",
+        "Chain",
+        "Channel",
+        "Link Quality",
+    ]:
         assert keyword in joined_catalog, f"Expected keyword '{keyword}' in metrics catalog"
 
 
