@@ -6,6 +6,12 @@
 
 FROM python:3.11-slim
 
+LABEL org.opencontainers.image.title="AGV/AMR-ACS Wireless Network Telemetry Dashboard" \
+      org.opencontainers.image.description="AGV/AMR & ACS 18-metric wireless network pre-detection & post-mortem RCA mock-up dashboard" \
+      org.opencontainers.image.source="https://github.com/planner77/network_dashboard" \
+      org.opencontainers.image.url="https://github.com/planner77/network_dashboard" \
+      org.opencontainers.image.version="1.1.2"
+
 # Prevent python from writing pyc files and buffering stdout/stderr
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -30,8 +36,10 @@ COPY app/ ./app/
 COPY docs/ ./docs/
 COPY AGENTS.md DESIGN.md README.md ./
 
-# Create tsdb storage directory with proper read/write permissions
-RUN mkdir -p /app/tsdb_data && chmod 777 /app/tsdb_data
+# Create tsdb storage directory and pre-seed initial mock-up data into the image
+RUN mkdir -p /app/tsdb_data && \
+    python -c "from app.tsdb import TSDB; db = TSDB('/app/tsdb_data/network_telemetry.db'); db.seed_initial_data(force=True); db.conn.execute('PRAGMA wal_checkpoint(TRUNCATE)'); db.conn.close()" && \
+    chmod -R 777 /app/tsdb_data
 
 # Expose web service port (default: 9921)
 EXPOSE 9921

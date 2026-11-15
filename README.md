@@ -249,6 +249,12 @@ pytest tests/test_api.py -v
 
 ## 10. 변경 사항 (Changelog)
 
+### v1.1.2 (2026-11-15)
+- **GitHub 저장소 Packages 섹션 GHCR 자동 연결**:
+  - `Dockerfile`에 OCI 표준 레이블(`org.opencontainers.image.source="https://github.com/planner77/network_dashboard"`)을 추가하여 GHCR 이미지가 GitHub 저장소 우측 **Packages** 섹션에 자동 연결·표시되도록 조치.
+- **GHCR 도커 이미지 내 Mock-up 시계열 DB 사전 적재(Pre-seed) 및 실시간 생성 이중 보장**:
+  - 도커 이미지 빌드 단계에서 `/app/tsdb_data/network_telemetry.db`에 초기 Mock-up 데이터(AGV 6대 × 600초 1초 단위 이력 3,600건, 30초 정기 보고 120건, 4대 장애 시나리오 사건 기록 4건, 18종 수집 지표 카탈로그)를 물리적으로 내장하고, 컨테이너 실행 시 현재 시각 기준으로 최신화 및 1초 단위 실시간 생성을 수행하도록 강화.
+
 ### v1.1.1 (2026-11-15)
 - **투어 가이드 툴팁 상자 드래그 이동 기능 추가**:
   - 투어 설명 카드(`#tour-popover`)의 상단 헤더 바(`#tour-popover-header`, `✥ 이동` 핸들)를 마우스 또는 터치로 잡고 화면 원하는 위치로 자유롭게 이동 가능(더블클릭 시 우측 하단 기본 위치로 복귀).

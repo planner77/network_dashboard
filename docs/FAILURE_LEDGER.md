@@ -103,6 +103,17 @@
   2. `M04`(`PHY Rate & MCS Index`), `M05`(`Tx/Rx Retry Rate`), `M09`(`Ping Latency & Packet Loss`), `M13/M14`(`Send/Recv Queue`), `M15`(`Heartbeat Timeout`), `M16`(`TCP Socket State`)의 제목과 상세 설명에 해당 키워드와 수집 방법을 명확히 병기.
 - **재발 방지 대책**: `tests/test_api.py`에 드래그 핸들 존재 여부 및 7대 키워드 포함 여부 검증 테스트를 추가함.
 
+### `FL-011` — GitHub 저장소 Packages 섹션에 GHCR 이미지가 자동 연결·표시되지 않는 현상 및 이미지 내 Mock-up DB 사전 적재
+- **발생 일시**: `2026-11-15 19:01 (KST)`
+- **진행 단계**: `GHCR 배포 및 패키징 보완 (v1.1.2)`
+- **증상 / 문제 정의**: `ghcr.io/planner77/network_dashboard` 이미지를 푸시했으나 GitHub 저장소(`https://github.com/planner77/network_dashboard`) 우측 `Packages` 섹션에 목록이 표시되지 않았으며, 이미지 내부에도 초기 Mock-up 데이터 스냅샷이 기본 포함되도록 보장 필요.
+- **근본 원인**: GitHub Container Registry(GHCR)는 `Dockerfile`에 OCI 표준 레이블(`LABEL org.opencontainers.image.source="https://github.com/planner77/network_dashboard"`)이 명시되어 있어야 푸시 시 해당 저장소의 `Packages` 섹션에 자동 연결됨. 또한 기존에는 컨테이너 기동 시점에 Mock-up 데이터를 생성하고 있어 빌드 시점 이미지 레이어 내부의 `/app/tsdb_data/network_telemetry.db` 파일 사전 생성이 없었음.
+- **해결 조치**:
+  1. `Dockerfile`에 `LABEL org.opencontainers.image.source="https://github.com/planner77/network_dashboard"` 등 OCI 표준 메타데이터 레이블을 추가하여 GHCR 이미지와 GitHub 저장소를 자동 연결.
+  2. `Dockerfile` 빌드 단계에서 `TSDB('/app/tsdb_data/network_telemetry.db').seed_initial_data(force=True)` 및 WAL 체크포인트를 수행하여 **이미지 자체에 초기 Mock-up 시계열 DB 파일(AGV 6대 × 10분 이력 3,600건, 30초 보고 120건, 4대 장애 이력)이 물리적으로 포함**되도록 하고, 컨테이너 기동 시에는 현재 시각 기준으로 최신 시계열 데이터를 자동 갱신·실시간 생성하도록 구성.
+- **재발 방지 대책**: 모든 GHCR 배포용 `Dockerfile` 작성 시 `org.opencontainers.image.source` 레이블을 필수 포함하도록 표준화함.
+
+
 
 
 
