@@ -1195,8 +1195,11 @@
   </div>
 
   <aside class="tour-popover" id="tour-popover" role="dialog" aria-modal="false" aria-labelledby="tour-step-title">
-    <div class="tour-popover-header">
-      <span class="badge" style="background:#FACC15; color:#0F172A; font-weight:800;" id="tour-step-badge">STEP 1 / 8</span>
+    <div class="tour-popover-header" id="tour-popover-header" title="마우스로 헤더를 잡고 원하는 위치로 이동할 수 있습니다 (더블클릭 시 원래 위치로 복귀)">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span class="tour-drag-handle" aria-hidden="true">✥ 이동</span>
+        <span class="badge" style="background:#FACC15; color:#0F172A; font-weight:800;" id="tour-step-badge">STEP 1 / 8</span>
+      </div>
       <div class="tour-step-dots" id="tour-step-dots"></div>
       <button class="btn btn-sm" style="background:rgba(255,255,255,0.2); color:#FFF; border:none;" id="btn-tour-close" type="button">✕ 투어 닫기</button>
     </div>

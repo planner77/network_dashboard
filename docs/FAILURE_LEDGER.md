@@ -93,5 +93,16 @@
   4. `.env` 및 `docker-compose.yml`을 통해 접속 포트(`9921`)와 주요 설정을 일괄 관리하도록 구성하고 `README.md`에 변경 이력(Changelog)을 반영함.
 - **재발 방지 대책**: `AGENTS.md`의 Golden Rules에 쉬운 용어 사용 수칙, `AGV/AMR` 및 `ACS` 수집 한정 원칙, `.env` 포트(`9921`) 관리 원칙을 최우선 수칙으로 등록함.
 
+### `FL-010` — 투어 가이드 툴팁 상자 고정 위치로 인한 화면 가림 개선 및 7대 핵심 지표 키워드 명시 보완
+- **발생 일시**: `2026-11-15 18:45 (KST)`
+- **진행 단계**: `UI/UX 및 수집 지표 명세 보완 (v1.1.1)`
+- **증상 / 문제 정의**: 투어 가이드 툴팁 상자(`#tour-popover`)가 우측 하단에 고정되어 있어 사용자가 뒤쪽 화면 요소를 볼 때 원하는 위치로 옮길 수 없었으며, `Tx/Rx Retry Rate`, `TCP Socket State`, `Send/Recv Queue`, `MCS Index`, `Heartbeat Timeout`, `Ping Latency`, `Packet Loss` 항목이 18종 중 어느 항목에 포함·통합되어 있는지 직관적인 표기가 필요함.
+- **근본 원인**: 투어 팝오버에 마우스/터치 드래그 이벤트 핸들러가 없었고, 일부 항목(`M04`, `M05`, `M09`, `M15`, `M16`)이 한글 중심 명칭으로만 되어 있어 영문 표준 키워드로 검색 시 매핑 관계를 한눈에 알기 어려웠음.
+- **해결 조치**:
+  1. `#tour-popover-header`에 마우스(`mousedown`/`mousemove`/`mouseup`) 및 터치 드래그 이동 로직과 `✥ 이동` 핸들을 추가하고, 더블클릭 시 기본 위치로 복귀하도록 구현.
+  2. `M04`(`PHY Rate & MCS Index`), `M05`(`Tx/Rx Retry Rate`), `M09`(`Ping Latency & Packet Loss`), `M13/M14`(`Send/Recv Queue`), `M15`(`Heartbeat Timeout`), `M16`(`TCP Socket State`)의 제목과 상세 설명에 해당 키워드와 수집 방법을 명확히 병기.
+- **재발 방지 대책**: `tests/test_api.py`에 드래그 핸들 존재 여부 및 7대 키워드 포함 여부 검증 테스트를 추가함.
+
+
 
 

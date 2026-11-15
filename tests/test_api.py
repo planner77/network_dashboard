@@ -60,6 +60,10 @@ def test_index_page(client):
     # Verify Tab 5 (담당자별 해야 할 일 / tab-roles)
     assert "tab-roles" in content or "담당자별" in content
 
+    # Verify draggable tour popover header
+    assert "tour-popover-header" in content
+    assert "tour-drag-handle" in content
+
 
 def test_api_config(client):
     """Verify GET /api/config returns port 9921 and default_theme light from .env."""
@@ -153,6 +157,11 @@ def test_api_metrics_catalog(client):
 
         loc = m.get("collection_location", "").strip()
         assert loc in valid_locations, f"Metric {m.get('id')} has invalid collection_location: {loc}. Must be AGV/AMR or ACS only."
+
+    # Verify the 7 key metric concepts (MCS Index, Tx/Rx Retry Rate, Ping Latency, Packet Loss, Send/Recv Queue, Heartbeat Timeout, TCP Socket State) are covered
+    joined_catalog = " ".join(f"{m.get('name_ko')} {m.get('name_en')} {m.get('description')}" for m in metrics)
+    for keyword in ["MCS Index", "Tx/Rx Retry Rate", "Ping Latency", "Packet Loss", "Send Queue", "Recv Queue", "Heartbeat Timeout", "TCP Socket State"]:
+        assert keyword in joined_catalog, f"Expected keyword '{keyword}' in metrics catalog"
 
 
 def test_api_scenarios(client):

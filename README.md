@@ -249,6 +249,12 @@ pytest tests/test_api.py -v
 
 ## 10. 변경 사항 (Changelog)
 
+### v1.1.1 (2026-11-15)
+- **투어 가이드 툴팁 상자 드래그 이동 기능 추가**:
+  - 투어 설명 카드(`#tour-popover`)의 상단 헤더 바(`#tour-popover-header`, `✥ 이동` 핸들)를 마우스 또는 터치로 잡고 화면 원하는 위치로 자유롭게 이동 가능(더블클릭 시 우측 하단 기본 위치로 복귀).
+- **7대 핵심 네트워크 항목 매핑 명시 강화**:
+  - `MCS Index` (`M04`), `Tx/Rx Retry Rate` (`M05`), `Ping Latency` & `Packet Loss` (`M09`), `Send/Recv Queue` (`M13`, `M14`), `Heartbeat Timeout` (`M15`), `TCP Socket State` (`M16`) 명칭 및 수집 방법을 백과사전과 명세서에 명확히 병기하여 즉시 검색·확인 가능하도록 보완.
+
 ### v1.1.0 (2026-11-15)
 - **포트 9921 전환 및 `.env` 통합**:
   - 기본 접속 포트를 `9921`(`PORT=9921`, `DASHBOARD_PORT=9921`)로 표준화하고 `docker-compose.yml`에 `env_file: - .env` 연동.

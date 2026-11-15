@@ -213,53 +213,55 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
     {
         "id": "M04",
         "key": "phy_rate",
-        "name_ko": "무선 연결 속도 (PHY Link Speed)",
-        "name_en": "Tx/Rx PHY Rate (MCS Link Speed)",
-        "abbr": "PHY Rate",
+        "name_ko": "무선 연결 속도 및 변조 등급 (PHY Rate & MCS Index)",
+        "name_en": "Tx/Rx PHY Rate & MCS Index",
+        "abbr": "PHY/MCS",
         "layer": LAYER_L12,
         "layer_code": "L1_L2",
         "description": (
-            "AGV 무선 랜카드와 기지국(AP) 사이에 현재 맺어진 실제 무선 전송 속도(Mbps)입니다. "
-            "와이파이 칩셋은 전파 상태가 나빠지면 연결이 끊어지기 전에 스스로 전송 속도를 단계적으로 낮추어(예: 300Mbps → 54Mbps → 6Mbps) "
-            "버티려 하므로, 무선 연결 속도 급락은 통신 끊김 직전에 나타나는 매우 빠른 사전 징후입니다."
+            "AGV 무선 랜카드와 기지국(AP) 사이에 현재 맺어진 실제 무선 전송 속도(Mbps)와 변조 등급(MCS Index, 0~11)입니다. "
+            "MCS Index와 무선 전송 속도는 1:1로 연동되는 값으로, 전파 상태가 나빠지면 연결이 끊어지기 전에 스스로 MCS 등급과 속도를 단계적으로 낮추어(예: MCS 7 144Mbps → MCS 3 54Mbps → MCS 0 6Mbps) "
+            "버티려 하므로, MCS Index 및 무선 연결 속도 급락은 통신 끊김 직전에 나타나는 매우 빠른 사전 징후입니다."
         ),
-        "unit": "Mbps",
-        "thresholds": {"normal": "≥ 100 Mbps", "warning": "24 ~ 99 Mbps", "critical": "≤ 18 Mbps"},
+        "unit": "Mbps (MCS 0~11)",
+        "thresholds": {"normal": "≥ 100 Mbps (MCS 5~11)", "warning": "24 ~ 99 Mbps (MCS 2~4)", "critical": "≤ 18 Mbps (MCS 0~1)"},
         "threshold_levels": {"direction": "higher_is_better", "warning": 99.5, "critical": 18.5},
         "display_range": [0, 450],
         "collection_location": "AGV/AMR",
         "interval_local": "1s",
         "interval_report": "30초 정기 보고 시 요약 데이터 동봉 전송",
-        "recommended_interval": "AGV 내부 1초 단위 상시 기록장 (최근 5분 순환 보관) / 30초 정기 보고 시 요약 데이터 동봉 전송 (최저 속도)",
+        "recommended_interval": "AGV 내부 1초 단위 상시 기록장 (최근 5분 순환 보관) / 30초 정기 보고 시 요약 데이터 동봉 전송 (최저 속도·최저 MCS Index)",
         "system_load": _load(_LOAD_VERY_LOW, "0 B/s (AGV 내부 상태값 읽기)",
-                             "AGV 커널 무선 상태 구조체에서 송수신 속도 값을 1회 조회"),
+                             "AGV 커널 무선 상태 구조체에서 송수신 속도(PHY Rate)와 MCS Index 값을 1회 동시 조회"),
         "collection_method": {
-            "interface": "AGV nl80211 NL80211_ATTR_STA_INFO (tx_bitrate / rx_bitrate)",
-            "command": "iw dev wlan0 link | grep -E 'tx bitrate|rx bitrate'",
+            "interface": "AGV nl80211 NL80211_ATTR_STA_INFO (tx_bitrate / rx_bitrate / mcs)",
+            "command": "iw dev wlan0 link | grep -E 'tx bitrate|rx bitrate'   # 속도(Mbps) 및 MCS Index 동시 출력",
             "code_snippet": (
                 "out = subprocess.run(['iw','dev','wlan0','link'],capture_output=True,text=True).stdout\n"
-                "tx = float(re.search(r'tx bitrate:\\s+([\\d.]+)', out).group(1))  # Mbps"
+                "tx = float(re.search(r'tx bitrate:\\s+([\\d.]+)', out).group(1))  # Mbps\n"
+                "mcs_m = re.search(r'MCS\\s+(\\d+)', out)\n"
+                "mcs_index = int(mcs_m.group(1)) if mcs_m else None"
             ),
-            "detail": "AGV의 송신(tx)과 수신(rx) 연결 속도 중 더 낮은 값을 기준으로 기록하여 무선 품질 저하를 빠르게 포착합니다.",
+            "detail": "iw dev wlan0 link 한 줄에서 송수신 속도(Mbps)와 MCS Index가 동시에 조회됩니다.",
         },
         "analysis_usage": {
-            "pre_detection": "무선 연결 속도가 5초 내 절반 이하로 떨어지면 무선 품질 악화 징후로 판단하여 사전 위험 점수에 반영.",
-            "post_mortem": "끊김 직전 속도가 최저 수준(6~12Mbps)까지 떨어졌다면 전파 음영·간섭(SCN-02), 속도는 높았는데 끊겼다면 프로그램 응답 지연(SCN-04) 등으로 구분.",
+            "pre_detection": "MCS Index가 2 이하로 떨어지거나 무선 연결 속도가 5초 내 절반 이하로 떨어지면 무선 품질 악화 징후로 판단하여 사전 위험 점수에 반영.",
+            "post_mortem": "끊김 직전 속도가 최저 수준(MCS 0, 6~12Mbps)까지 떨어졌다면 전파 음영·간섭(SCN-02), 속도와 MCS는 높았는데 끊겼다면 프로그램 응답 지연(SCN-04) 등으로 구분.",
             "weight": 0.05,
         },
     },
     {
         "id": "M05",
         "key": "l2_retry_rate",
-        "name_ko": "무선 구간 재시도 비율 (Wi-Fi Retry Rate)",
-        "name_en": "802.11 Wi-Fi Retry Rate",
-        "abbr": "Wi-Fi Retry",
+        "name_ko": "무선 구간 송수신 재시도 비율 (Tx/Rx Retry Rate)",
+        "name_en": "Tx/Rx Retry Rate (802.11 Wi-Fi Retry & Rx Drop Rate)",
+        "abbr": "Tx/Rx Retry",
         "layer": LAYER_L12,
         "layer_code": "L1_L2",
         "description": (
-            "무선 신호가 깨지거나 충돌해서 AGV 와이파이 칩셋이 같은 데이터를 다시 보낸 비율(재시도 수 / 전체 전송 수)입니다. "
+            "무선 신호가 깨지거나 충돌해서 AGV 와이파이 칩셋이 데이터를 다시 보낸 송신 재시도율(Tx Retry Rate)과 수신 프레임 오류·중복 비율(Rx Retry/Drop Rate)입니다. "
             "와이파이 칩셋이 내부적으로 수차례 재시도하는 동안에는 상위 프로그램(소켓)이 이상을 눈치채지 못하므로, "
-            "무선 재시도 비율 급증은 소켓 통신이 끊어지기 수 초 전에 가장 먼저 치솟는 핵심 위험 신호입니다."
+            "Tx/Rx Retry Rate 급증은 소켓 통신이 끊어지기 수 초 전에 가장 먼저 치솟는 핵심 위험 신호입니다."
         ),
         "unit": "%",
         "thresholds": {"normal": "< 8 %", "warning": "8 ~ 20 %", "critical": "> 20 %"},
@@ -268,21 +270,21 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
         "collection_location": "AGV/AMR",
         "interval_local": "1s",
         "interval_report": "30초 정기 보고 시 요약 데이터 동봉 전송",
-        "recommended_interval": "AGV 내부 1초 단위 상시 기록장 (최근 5분 순환 보관) / 30초 정기 보고 시 요약 데이터 동봉 전송 (최대 재시도율)",
-        "system_load": _load(_LOAD_LOW, "0 B/s (AGV 내부 전송 카운터 비교)",
-                             "AGV 무선 드라이버의 누적 전송·재시도 카운터를 1초 간격으로 비교하여 비율 산출"),
+        "recommended_interval": "AGV 내부 1초 단위 상시 기록장 (최근 5분 순환 보관) / 30초 정기 보고 시 요약 데이터 동봉 전송 (최대 Tx/Rx 재시도율)",
+        "system_load": _load(_LOAD_LOW, "0 B/s (AGV 내부 전송·수신 카운터 비교)",
+                             "AGV 무선 드라이버의 누적 송수신·재시도 카운터를 1초 간격으로 비교하여 비율 산출"),
         "collection_method": {
-            "interface": "AGV nl80211 STA_INFO (tx_retries, tx_packets) 또는 ethtool -S wlan0",
-            "command": "iw dev wlan0 station dump | grep -E 'tx packets|tx retries|tx failed'",
+            "interface": "AGV nl80211 STA_INFO (tx_retries, tx_packets, rx_drop_misc) 및 /proc/net/wireless",
+            "command": "iw dev wlan0 station dump | grep -E 'tx packets|tx retries|tx failed|rx drop'",
             "code_snippet": (
                 "d_retry = cur['tx_retries'] - prev['tx_retries']\n"
                 "d_pkts  = cur['tx_packets'] - prev['tx_packets']\n"
-                "retry_pct = 100.0 * d_retry / max(d_pkts, 1)"
+                "tx_retry_pct = 100.0 * d_retry / max(d_pkts, 1)"
             ),
-            "detail": "AGV 내부에서 직전 1초 동안의 전송 수 대비 재시도 수 비율을 계산하여 상시 기록장에 남깁니다.",
+            "detail": "AGV 내부에서 직전 1초 동안의 전송 수 대비 재시도 비율(Tx Retry Rate)과 수신 드롭(Rx Drop)을 계산하여 상시 기록장에 남깁니다.",
         },
         "analysis_usage": {
-            "pre_detection": "무선 재시도 비율이 15%를 넘으면 위험 점수를 크게 높임(가중치 20%). 소켓(TCP) 재전송보다 평균 3~6초 먼저 나타나는 선행 지표.",
+            "pre_detection": "Tx/Rx Retry Rate가 15%를 넘으면 위험 점수를 크게 높임(가중치 20%). 소켓(TCP) 재전송보다 평균 3~6초 먼저 나타나는 선행 지표.",
             "post_mortem": "재시도 35% 이상 + 신호 급락 → 전파 음영(SCN-02), 재시도 상승 + 신호 양호 + 채널 혼잡도 과다 → 무선 채널 혼잡(SCN-03).",
             "weight": 0.20,
         },
@@ -409,40 +411,43 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
     {
         "id": "M09",
         "key": "gw_rtt_ms",
-        "name_ko": "게이트웨이 응답 시간 (Gateway Ping RTT)",
-        "name_en": "Gateway Ping RTT",
-        "abbr": "GW RTT",
+        "name_ko": "게이트웨이 Ping 응답 지연 및 패킷 손실률 (Ping Latency & Packet Loss)",
+        "name_en": "Gateway Ping Latency (RTT) & Packet Loss (%)",
+        "abbr": "Ping / Loss",
         "layer": LAYER_L34,
         "layer_code": "L3_L4",
         "description": (
-            "AGV에서 가장 가까운 유선 네트워크 관문(기본 게이트웨이 스위치)까지 작은 확인 패킷(Ping)이 왕복하는 데 걸리는 시간입니다. "
-            "사실상 순수 무선 구간(AGV↔기지국)의 지연 시간만을 뜻하므로, ACS 통신이 느려졌을 때 이 값이 정상이면 '사내 유선망 또는 ACS 서버 문제', "
+            "AGV에서 가장 가까운 유선 네트워크 관문(기본 게이트웨이 스위치)까지 작은 확인 패킷(Ping)이 왕복하는 응답 지연 시간(Ping Latency)과 무응답 손실 비율(Packet Loss %)입니다. "
+            "사실상 순수 무선 구간(AGV↔기지국)의 지연과 패킷 손실만을 뜻하므로, ACS 통신이 느려졌을 때 이 값이 정상이면 '사내 유선망 또는 ACS 서버 문제', "
             "이 값도 함께 치솟으면 '현장 무선 구간 문제'라고 책임 구간을 명확히 나눌 수 있습니다."
         ),
-        "unit": "ms",
-        "thresholds": {"normal": "< 10 ms", "warning": "10 ~ 40 ms", "critical": "> 50 ms"},
+        "unit": "ms / %",
+        "thresholds": {"normal": "< 10 ms (손실 0%)", "warning": "10 ~ 40 ms (손실 1~5%)", "critical": "> 50 ms (손실 > 5%)"},
         "threshold_levels": {"direction": "lower_is_better", "warning": 10.0, "critical": 50.0},
         "display_range": [0, 320],
         "collection_location": "AGV/AMR",
         "interval_local": "2s",
         "interval_report": "30초 정기 보고 시 요약 데이터 동봉 전송",
-        "recommended_interval": "AGV 내부 2초 주기 측정 (상시 기록장) / 30초 정기 보고 시 요약 데이터 동봉 전송 (평균·최대 응답 시간)",
+        "recommended_interval": "AGV 내부 2초 주기 측정 (상시 기록장) / 30초 정기 보고 시 요약 데이터 동봉 전송 (평균·최대 Ping Latency 및 Packet Loss %)",
         "system_load": _load(_LOAD_LOW, "약 64 B/s (2초당 아주 작은 64B 확인 패킷 1개)",
-                             "2초마다 64바이트 Ping 1개만 보내므로 무선 대역폭 영향은 0.001% 미만 (300ms 초과 시 응답 없음 처리)"),
+                             "2초마다 64바이트 Ping 1개만 보내므로 무선 대역폭 영향은 0.001% 미만 (300ms 초과 시 Packet Loss 카운트)"),
         "collection_method": {
-            "interface": "AGV 비동기 ICMP Ping (기본 게이트웨이 IP 대상)",
-            "command": "fping -c1 -t300 -q $(ip route | awk '/default/{print $3}')",
+            "interface": "AGV 비동기 ICMP Ping (Ping Latency & Packet Loss 동시 측정)",
+            "command": "fping -c1 -t300 -q $(ip route | awk '/default/{print $3}')   # Ping Latency 및 Packet Loss 측정",
             "code_snippet": (
                 "sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_ICMP)\n"
                 "t0 = time.perf_counter(); sock.sendto(echo_pkt, (gw_ip, 0))\n"
-                "sock.settimeout(0.3); sock.recv(64)\n"
-                "gw_rtt_ms = (time.perf_counter() - t0) * 1000"
+                "sock.settimeout(0.3)\n"
+                "try:\n"
+                "    sock.recv(64); gw_rtt_ms = (time.perf_counter() - t0) * 1000; pkt_loss = 0\n"
+                "except socket.timeout:\n"
+                "    gw_rtt_ms = 300.0; pkt_loss = 100"
             ),
-            "detail": "AGV에서 기본 게이트웨이 IP로 비동기 Ping을 보내 보고 프로그램이 멈추지 않게 측정합니다.",
+            "detail": "AGV에서 기본 게이트웨이 IP로 비동기 Ping을 보내 응답 지연 시간(Ping Latency)과 패킷 손실률(Packet Loss)을 동시에 측정합니다.",
         },
         "analysis_usage": {
-            "pre_detection": "게이트웨이 응답 시간이 평소보다 3배 이상 길어지면 무선 구간 지연 누적으로 판단해 사전 위험 점수에 반영.",
-            "post_mortem": "게이트웨이 응답 시간은 정상(< 10ms)인데 ACS 보고만 멈춘 경우 → 무선이 아닌 통신 프로그램 일시 멈춤(SCN-04)으로 판정.",
+            "pre_detection": "Ping Latency가 평소보다 3배 이상 길어지거나 Packet Loss가 발생하면 무선 구간 지연·손실 누적으로 판단해 사전 위험 점수에 반영.",
+            "post_mortem": "Ping Latency(< 10ms)와 Packet Loss(0%)가 모두 정상인데 ACS 보고만 멈춘 경우 → 무선이 아닌 통신 프로그램 일시 멈춤(SCN-04)으로 판정.",
             "weight": 0.05,
         },
     },
@@ -562,13 +567,13 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
     {
         "id": "M13",
         "key": "send_q_bytes",
-        "name_ko": "소켓 송신 대기 데이터양 (Socket Send-Q)",
-        "name_en": "Socket Send-Q",
+        "name_ko": "소켓 송신 대기열 크기 (Send Queue / Socket Send-Q)",
+        "name_en": "Socket Send Queue (Send-Q Bytes)",
         "abbr": "Send-Q",
         "layer": LAYER_L34,
         "layer_code": "L3_L4",
         "description": (
-            "통신 프로그램이 데이터를 보냈으나 상대방에게 아직 전달(확인 응답 수신)되지 못해 출발지 OS 송신 대기열에 쌓여 있는 데이터양(Bytes)입니다. "
+            "통신 프로그램이 데이터를 보냈으나 상대방에게 아직 전달(확인 응답 수신)되지 못해 출발지 OS 송신 대기열(Send Queue)에 쌓여 있는 데이터양(Bytes)입니다. "
             "정상일 때는 즉시 0으로 비워지지만, 무선 끊김 직전에는 보내지 못한 보고 데이터가 대기열에 계속 쌓이므로 "
             "수 초 내 통신 단절이 일어날 것을 확실하게 예고합니다."
         ),
@@ -583,17 +588,17 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
         "system_load": _load(_LOAD_VERY_LOW, "0 B/s (OS 소켓 버퍼 크기 조회)", "ioctl(SIOCOUTQ) 시스템 호출 1회"),
         "collection_method": {
             "interface": "AGV 및 ACS ioctl(fd, SIOCOUTQ) 또는 ss -tn (Send-Q 컬럼)",
-            "command": "ss -tn dst <PEER_IP> | awk 'NR>1{print $3}'   # Send-Q",
+            "command": "ss -tn dst <PEER_IP> | awk 'NR>1{print $3}'   # Send Queue (Send-Q)",
             "code_snippet": (
                 "import fcntl, termios, array\n"
                 "buf = array.array('i', [0])\n"
                 "fcntl.ioctl(sock.fileno(), termios.TIOCOUTQ, buf)  # == SIOCOUTQ\n"
                 "send_q_bytes = buf[0]"
             ),
-            "detail": "송신 대기열이 0으로 비워지지 않고 3초 이상 계속 남아 있는지 여부를 함께 감시합니다.",
+            "detail": "송신 대기열(Send Queue)이 0으로 비워지지 않고 3초 이상 계속 남아 있는지 여부를 함께 감시합니다.",
         },
         "analysis_usage": {
-            "pre_detection": "송신 대기열에 데이터가 3초 이상 쌓여 있으면 위험 점수를 높임(가중치 15%). 통신 단절 직전 상태를 직접 포착.",
+            "pre_detection": "송신 대기열(Send Queue)에 데이터가 3초 이상 쌓여 있으면 위험 점수를 높임(가중치 15%). 통신 단절 직전 상태를 직접 포착.",
             "post_mortem": "송신 대기열 누적 + 소켓 재전송 증가 → 무선 경로 손실(SCN-01~03), 송신 대기열은 작고 수신 대기열만 급증 → 프로그램 일시 멈춤(SCN-04).",
             "weight": 0.15,
         },
@@ -601,14 +606,14 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
     {
         "id": "M14",
         "key": "recv_q_bytes",
-        "name_ko": "소켓 수신 대기 데이터양 (Socket Recv-Q)",
-        "name_en": "Socket Recv-Q",
+        "name_ko": "소켓 수신 대기열 크기 (Recv Queue / Socket Recv-Q)",
+        "name_en": "Socket Receive Queue (Recv-Q Bytes)",
         "abbr": "Recv-Q",
         "layer": LAYER_L34,
         "layer_code": "L3_L4",
         "description": (
             "네트워크를 통해 데이터가 정상적으로 도착했으나, AGV 또는 ACS 통신 프로그램이 다른 작업(예: 자율주행 연산 과부하)으로 바빠서 "
-            "아직 읽어가지 못해 수신 대기열에 쌓여 있는 데이터양(Bytes)입니다. "
+            "아직 읽어가지 못해 수신 대기열(Recv Queue)에 쌓여 있는 데이터양(Bytes)입니다. "
             "이 값이 커진다는 것은 '와이파이는 멀쩡한데 통신 프로그램이 일시 멈춤(응답 지연) 상태'라는 결정적 증거입니다."
         ),
         "unit": "Bytes",
@@ -622,7 +627,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
         "system_load": _load(_LOAD_VERY_LOW, "0 B/s (OS 소켓 버퍼 크기 조회)", "ioctl(SIOCINQ/FIONREAD) 시스템 호출 1회"),
         "collection_method": {
             "interface": "AGV 및 ACS ioctl(fd, SIOCINQ / FIONREAD) 또는 ss -tnp (Recv-Q 컬럼)",
-            "command": "ss -tnp dst <PEER_IP> | awk 'NR>1{print $2}'   # Recv-Q",
+            "command": "ss -tnp dst <PEER_IP> | awk 'NR>1{print $2}'   # Recv Queue (Recv-Q)",
             "code_snippet": (
                 "buf = array.array('i', [0])\n"
                 "fcntl.ioctl(sock.fileno(), termios.FIONREAD, buf)  # == SIOCINQ\n"
@@ -631,7 +636,7 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
             "detail": "통신 스레드가 멈추더라도 값을 기록할 수 있도록 별도의 가벼운 감시 스레드에서 1초마다 조회합니다.",
         },
         "analysis_usage": {
-            "pre_detection": "수신 대기열이 2KB를 넘어 계속 쌓이면 프로그램 응답 지연으로 통신이 막히기 전에 경보 발송.",
+            "pre_detection": "수신 대기열(Recv Queue)이 2KB를 넘어 계속 쌓이면 프로그램 응답 지연으로 통신이 막히기 전에 경보 발송.",
             "post_mortem": "무선 신호·게이트웨이 응답 정상 + 수신 대기열 급증 + CPU 과부하 → 통신 프로그램 일시 멈춤·시스템 병목(SCN-04)으로 확정.",
             "weight": 0.10,
         },
@@ -640,27 +645,27 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
     {
         "id": "M15",
         "key": "hb_delta_sec",
-        "name_ko": "30초 보고 도착 시간 간격 (Report Arrival Interval)",
-        "name_en": "Report Arrival Interval (Heartbeat Delta)",
-        "abbr": "Report Δ",
+        "name_ko": "30초 보고 도착 간격 및 응답 시간 초과 (Heartbeat Timeout & Interval)",
+        "name_en": "Heartbeat Timeout & Report Arrival Interval",
+        "abbr": "HB Timeout",
         "layer": LAYER_L7,
         "layer_code": "L7_SYS",
         "description": (
-            "ACS 서버가 AGV로부터 정기 상태 보고를 실제로 받은 시간 간격(정상 기준: 30.0초)이며, 다음 보고가 오지 않는 동안에는 "
-            "마지막 수신 이후 경과 시간으로 1초마다 감시합니다. 보고 간격이 30.0초 → 32.5초 → 36.8초처럼 점점 밀리는 현상을 통해 "
-            "연결이 완전히 끊어지기 전에 불안정한 AGV를 ACS 측에서 식별할 수 있습니다."
+            "ACS 서버가 AGV로부터 정기 상태 보고(Heartbeat)를 실제로 받은 시간 간격(정상 기준: 30.0초) 및 응답 시간 초과(Heartbeat Timeout) 여부입니다. "
+            "보고 간격이 30.0초 → 32.5초 → 36.8초처럼 점점 밀리는 현상을 통해 연결이 완전히 끊어지기 전에 불안정한 AGV를 식별하며, "
+            "45초 초과 시 Heartbeat Timeout(단절)으로 판정합니다."
         ),
         "unit": "sec",
-        "thresholds": {"normal": "29.5 ~ 30.5 초", "warning": "31 ~ 38 초", "critical": "> 45 초 (단절 판정)"},
+        "thresholds": {"normal": "29.5 ~ 30.5 초", "warning": "31 ~ 38 초 (지연)", "critical": "> 45 초 (Heartbeat Timeout)"},
         "threshold_levels": {"direction": "lower_is_better", "warning": 30.5, "critical": 45.0},
         "display_range": [0, 60],
         "collection_location": "ACS",
         "interval_local": "1s",
         "interval_report": "매 보고 시",
-        "recommended_interval": "ACS 서버에서 매 보고 수신 시 시각 차이 기록 + 1초 주기 미수신 경과 시간 감시",
+        "recommended_interval": "ACS 서버에서 매 보고 수신 시 시각 차이 기록 + 1초 주기 Heartbeat Timeout 감시",
         "system_load": _load(_LOAD_VERY_LOW, "0 B/s (ACS 서버 내부 수신 시각 비교)", "ACS 메모리에서 AGV별 마지막 수신 시각만 비교"),
         "collection_method": {
-            "interface": "ACS 소켓 수신 핸들러 타임스탬프 (이번 수신 시각 − 직전 수신 시각)",
+            "interface": "ACS 소켓 수신 핸들러 타임스탬프 및 1초 주기 Heartbeat Timeout 워치독",
             "command": "(ACS 서버 내부) on_report(agv_id) → hb_delta_sec = now - last_rx[agv_id]",
             "code_snippet": (
                 "def on_report(agv_id, now):\n"
@@ -668,53 +673,53 @@ METRICS_CATALOG: List[Dict[str, Any]] = [
                 "    last_rx[agv_id] = now\n"
                 "def watchdog_1s(now):\n"
                 "    for agv, t in last_rx.items():\n"
-                "        if now - t > 45: mark_disconnected(agv)"
+                "        if now - t > 45: mark_heartbeat_timeout(agv)"
             ),
-            "detail": "ACS 서버가 1초마다 경과 시간을 확인하여 31초 초과 시 지연(DELAYED), 45초 초과 시 끊김(DISCONNECTED)으로 판정합니다.",
+            "detail": "ACS 서버가 1초마다 경과 시간을 확인하여 31초 초과 시 지연(DELAYED), 45초 초과 시 Heartbeat Timeout(DISCONNECTED)으로 판정합니다.",
         },
         "analysis_usage": {
-            "pre_detection": "보고 도착 간격이 31초를 넘어 계속 밀리는 AGV를 불안정 대상으로 조기 표시.",
-            "post_mortem": "기존 30초 방식에서 끊김을 언제 인지했는지 보여주는 기준선으로, 1초 사전 감지가 얼마나 빨리 경보했는지(선행 시간) 비교.",
+            "pre_detection": "보고 도착 간격이 31초를 넘어 계속 밀리는 AGV를 Heartbeat Timeout 임박 대상으로 조기 표시.",
+            "post_mortem": "기존 30초 방식에서 Heartbeat Timeout을 언제 인지했는지 보여주는 기준선으로, 1초 사전 감지가 얼마나 빨리 경보했는지(선행 시간) 비교.",
             "weight": 0.0,
         },
     },
     {
         "id": "M16",
         "key": "reconnect_count",
-        "name_ko": "소켓 재연결 횟수 및 끊김 사유 (Reconnect & Reason)",
-        "name_en": "Socket Reconnect Count & Close Reason",
-        "abbr": "Reconnect",
+        "name_ko": "TCP 소켓 연결 상태 및 재연결 횟수 (TCP Socket State & Reconnect)",
+        "name_en": "TCP Socket State & Reconnect Reason",
+        "abbr": "Socket State",
         "layer": LAYER_L7,
         "layer_code": "L7_SYS",
         "description": (
-            "AGV와 ACS 간 소켓 연결이 끊어져 다시 연결을 맺은 횟수(시간당)와 끊어진 이유 코드(ETIMEDOUT 응답 시간 초과 / "
-            "ECONNRESET 상대방 강제 리셋 / FIN 정상 종료)입니다. 상습적으로 끊기는 AGV를 찾고, 끊김 원인이 무선 시간 초과인지 "
-            "프로그램 재시작에 의한 강제 종료인지 구분합니다."
+            "AGV와 ACS 간 TCP 소켓의 현재 연결 상태(TCP Socket State: ESTABLISHED 정상 연결 / SYN_SENT 재연결 시도 / CLOSE_WAIT·TIME_WAIT·FIN_WAIT 종료 대기)와 "
+            "다시 연결을 맺은 횟수(시간당) 및 끊김 사유 코드(ETIMEDOUT 응답 시간 초과 / ECONNRESET 강제 리셋)입니다. "
+            "끊김 원인이 무선 시간 초과인지 프로그램 종료에 의한 상태 전환인지 구분합니다."
         ),
-        "unit": "count/hr",
-        "thresholds": {"normal": "0 회/시간", "warning": "1 ~ 2 회/시간", "critical": "≥ 3 회/시간"},
+        "unit": "State / count/hr",
+        "thresholds": {"normal": "ESTABLISHED (0회/시간)", "warning": "SYN_SENT / 재연결 1~2회", "critical": "CLOSE_WAIT·TIMEOUT (≥ 3회/시간)"},
         "threshold_levels": {"direction": "lower_is_better", "warning": 0.5, "critical": 2.5},
         "display_range": [0, 10],
         "collection_location": "AGV/AMR, ACS",
         "interval_local": "Event 즉시",
         "interval_report": "이벤트 발생 시",
-        "recommended_interval": "연결 끊김·재연결 발생 즉시 AGV 및 ACS 양쪽 기록 / 재연결 직후 끊김 사유 및 상세 기록 전송",
-        "system_load": _load(_LOAD_VERY_LOW, "0 B/s (평시) / 재연결 시 수십 Bytes", "소켓 연결·종료 시점에만 에러 코드를 기록"),
+        "recommended_interval": "1초 주기 TCP Socket State 확인 및 연결 끊김·재연결 발생 즉시 AGV·ACS 양쪽 기록",
+        "system_load": _load(_LOAD_VERY_LOW, "0 B/s (평시) / 재연결 시 수십 Bytes", "커널 소켓 상태(tcpi_state) 및 연결·종료 에러 코드 기록"),
         "collection_method": {
-            "interface": "AGV 및 ACS 소켓 연결/종료 예외 코드 (ETIMEDOUT, ECONNRESET, EOF)",
-            "command": "(AGV/ACS 소켓 래퍼) on_socket_close(err_code) → log(reason, duration)",
+            "interface": "AGV 및 ACS getsockopt(TCP_INFO) tcpi_state / ss -tnp 및 소켓 예외 코드",
+            "command": "ss -tnp dst <PEER_IP> | awk 'NR>1{print $1}'   # TCP Socket State (ESTAB, SYN-SENT, CLOSE-WAIT 등)",
             "code_snippet": (
                 "try:\n"
                 "    sock.sendall(report)\n"
                 "except ConnectionResetError: reason = 'ECONNRESET'\n"
                 "except (TimeoutError, socket.timeout): reason = 'ETIMEDOUT'\n"
-                "reconnect_log.append({'ts': now, 'reason': reason}); reconnect_count += 1"
+                "reconnect_log.append({'ts': now, 'state': tcp_state, 'reason': reason}); reconnect_count += 1"
             ),
-            "detail": "재연결에 성공한 직후 끊김 사유 코드를 보고하고, AGV 내부 상시 기록장에 보관된 끊김 전후 120초 상세 기록을 ACS로 일괄 전송합니다.",
+            "detail": "TCP Socket State 변화(ESTABLISHED → SYN_SENT/CLOSED)와 끊김 사유 코드를 기록하고, 재연결 직후 끊김 전후 120초 상세 기록을 ACS로 일괄 전송합니다.",
         },
         "analysis_usage": {
-            "pre_detection": "최근 1시간 내 재연결이 3회 이상 발생한 AGV는 같은 구간 진입 시 사전 경보 기준을 더 민감하게 적용.",
-            "post_mortem": "ETIMEDOUT → 무선 구간 단절, ECONNRESET → 프로그램 재시작·강제 종료로 원인을 명확히 구분.",
+            "pre_detection": "TCP Socket State가 CLOSE_WAIT에 머물거나 최근 1시간 내 재연결이 3회 이상 발생한 AGV는 사전 경보 기준을 더 민감하게 적용.",
+            "post_mortem": "ETIMEDOUT + SYN_SENT 반복 → 무선 구간 단절, CLOSE_WAIT/ECONNRESET → 통신 프로그램 종료·강제 리셋으로 원인을 명확히 구분.",
             "weight": 0.0,
         },
     },

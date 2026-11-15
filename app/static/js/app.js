@@ -1811,6 +1811,71 @@
       if (state.tourActive) updateTourSpotlightRect();
     }, true);
 
+    // 3-1. 투어 가이드 툴팁 상자 헤더 드래그 이동 지원 (마우스 & 터치)
+    const tourPopover = document.getElementById("tour-popover");
+    const tourHeader = document.getElementById("tour-popover-header");
+    if (tourPopover && tourHeader) {
+      let isDraggingTour = false;
+      let dragOffsetX = 0;
+      let dragOffsetY = 0;
+
+      const startDrag = (clientX, clientY, targetEl) => {
+        if (targetEl && targetEl.closest("button")) return;
+        const rect = tourPopover.getBoundingClientRect();
+        isDraggingTour = true;
+        dragOffsetX = clientX - rect.left;
+        dragOffsetY = clientY - rect.top;
+        tourPopover.style.left = `${rect.left}px`;
+        tourPopover.style.top = `${rect.top}px`;
+        tourPopover.style.right = "auto";
+        tourPopover.style.bottom = "auto";
+        tourHeader.classList.add("dragging");
+      };
+
+      const moveDrag = (clientX, clientY) => {
+        if (!isDraggingTour) return;
+        const rect = tourPopover.getBoundingClientRect();
+        const maxX = Math.max(8, window.innerWidth - rect.width - 8);
+        const maxY = Math.max(8, window.innerHeight - rect.height - 8);
+        const nextX = Math.max(8, Math.min(maxX, clientX - dragOffsetX));
+        const nextY = Math.max(8, Math.min(maxY, clientY - dragOffsetY));
+        tourPopover.style.left = `${nextX}px`;
+        tourPopover.style.top = `${nextY}px`;
+      };
+
+      const endDrag = () => {
+        if (!isDraggingTour) return;
+        isDraggingTour = false;
+        tourHeader.classList.remove("dragging");
+      };
+
+      tourHeader.addEventListener("mousedown", (e) => {
+        if (e.button !== 0) return;
+        startDrag(e.clientX, e.clientY, e.target);
+      });
+      window.addEventListener("mousemove", (e) => moveDrag(e.clientX, e.clientY));
+      window.addEventListener("mouseup", endDrag);
+
+      tourHeader.addEventListener("touchstart", (e) => {
+        if (e.touches.length !== 1) return;
+        startDrag(e.touches[0].clientX, e.touches[0].clientY, e.target);
+      }, { passive: true });
+      window.addEventListener("touchmove", (e) => {
+        if (!isDraggingTour || e.touches.length !== 1) return;
+        moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+      }, { passive: true });
+      window.addEventListener("touchend", endDrag);
+
+      // 헤더 더블클릭 시 기본 우측 하단 위치로 초기화
+      tourHeader.addEventListener("dblclick", (e) => {
+        if (e.target && e.target.closest("button")) return;
+        tourPopover.style.left = "auto";
+        tourPopover.style.top = "auto";
+        tourPopover.style.right = "24px";
+        tourPopover.style.bottom = "24px";
+      });
+    }
+
     // 4. Tab 1: 지도 표시 토글 및 AGV 클릭 선택
     document.getElementById("btn-toggle-heatmap")?.addEventListener("click", (e) => {
       state.showHeatmap = !state.showHeatmap;
@@ -2033,25 +2098,25 @@
         analysis_usage: { weight: 0.10, pre_detection: "특정 설비 가동 시 전파 방해 유입 추세 포착", post_mortem: "와이파이 기지국 고장이 아니라 공장 설비 잡음(SCN-02) 때문임을 증명" }
       },
       {
-        id: "M04", key: "phy_rate", name_ko: "무선 연결 속도", name_en: "PHY Link Speed (Mbps)",
-        layer: "무선 신호·전파 품질", layer_code: "L1_L2", unit: "Mbps",
-        description: "AGV와 무선 기지국(AP) 사이에 현재 맺어진 실제 무선 전송 속도입니다.",
-        thresholds: { normal: "100 Mbps 이상", warning: "24 ~ 99 Mbps", critical: "18 Mbps 이하" },
+        id: "M04", key: "phy_rate", name_ko: "무선 연결 속도 및 변조 등급 (PHY Rate & MCS Index)", name_en: "Tx/Rx PHY Rate & MCS Index",
+        layer: "무선 신호·전파 품질", layer_code: "L1_L2", unit: "Mbps (MCS 0~11)",
+        description: "AGV와 무선 기지국(AP) 사이에 현재 맺어진 실제 무선 전송 속도(Mbps) 및 변조 등급(MCS Index)입니다.",
+        thresholds: { normal: "100 Mbps 이상 (MCS 5~11)", warning: "24 ~ 99 Mbps (MCS 2~4)", critical: "18 Mbps 이하 (MCS 0~1)" },
         collection_location: "AGV/AMR", interval_local: "1초", interval_report: "30초 정기 보고 시 요약 동봉",
         recommended_interval: "AGV 내부 기록 1초 / 정기 보고 30초",
-        system_load: { level: "매우 낮음", cpu_overhead: "0.05% 미만", network_overhead: "평시 0 B/s", detail: "OS 커널 무선 링크 상태값 읽기" },
-        collection_method: { interface: "nl80211 station info", command: "iw dev wlan0 link | grep 'tx bitrate'", code_snippet: "tx_bitrate_mbps = sta_info['tx_bitrate'] / 10.0" },
-        analysis_usage: { weight: 0.10, pre_detection: "통신이 완전히 끊어지기 직전에 무선 랜카드가 속도를 단계적으로 낮추는 현상 포착", post_mortem: "속도가 최저(6Mbps)까지 떨어진 시점 확인" }
+        system_load: { level: "매우 낮음", cpu_overhead: "0.05% 미만", network_overhead: "평시 0 B/s", detail: "OS 커널 무선 링크 상태값(PHY 속도 및 MCS Index) 동시 읽기" },
+        collection_method: { interface: "nl80211 station info (tx_bitrate / mcs)", command: "iw dev wlan0 link | grep 'tx bitrate'", code_snippet: "tx_bitrate_mbps = sta_info['tx_bitrate'] / 10.0; mcs_idx = sta_info['mcs']" },
+        analysis_usage: { weight: 0.10, pre_detection: "통신이 완전히 끊어지기 직전에 무선 랜카드가 MCS 등급과 속도를 단계적으로 낮추는 현상 포착", post_mortem: "속도가 최저(MCS 0, 6Mbps)까지 떨어진 시점 확인" }
       },
       {
-        id: "M05", key: "l2_retry_rate", name_ko: "무선 구간 재시도 비율", name_en: "Wi-Fi MAC Retry Rate",
+        id: "M05", key: "l2_retry_rate", name_ko: "무선 구간 송수신 재시도 비율 (Tx/Rx Retry Rate)", name_en: "Tx/Rx Retry Rate (Wi-Fi MAC Retry & Rx Drop)",
         layer: "무선 신호·전파 품질", layer_code: "L1_L2", unit: "%",
-        description: "무선 신호가 깨져서 와이파이 칩셋이 다시 보낸 비율입니다.",
+        description: "무선 신호가 깨져서 와이파이 칩셋이 다시 보낸 송신 재시도율(Tx Retry Rate)과 수신 오류 비율(Rx Retry/Drop Rate)입니다.",
         thresholds: { normal: "8% 미만", warning: "8 ~ 20%", critical: "20% 초과" },
         collection_location: "AGV/AMR", interval_local: "1초", interval_report: "30초 정기 보고 시 요약 동봉",
         recommended_interval: "AGV 내부 기록 1초 / 정기 보고 30초",
-        system_load: { level: "낮음", cpu_overhead: "0.08% 미만", network_overhead: "평시 0 B/s", detail: "AGV 무선 드라이버 전송 카운터 비교" },
-        collection_method: { interface: "nl80211 / ethtool -S wlan0", command: "iw dev wlan0 station dump | grep 'tx retries'", code_snippet: "retry_rate = (delta_tx_retries / max(1, delta_tx_packets)) * 100.0" },
+        system_load: { level: "낮음", cpu_overhead: "0.08% 미만", network_overhead: "평시 0 B/s", detail: "AGV 무선 드라이버 송수신 카운터 비교" },
+        collection_method: { interface: "nl80211 / ethtool -S wlan0", command: "iw dev wlan0 station dump | grep -E 'tx retries|rx drop'", code_snippet: "retry_rate = (delta_tx_retries / max(1, delta_tx_packets)) * 100.0" },
         analysis_usage: { weight: 0.20, pre_detection: "소켓 통신이 끊어지기 수 초 전에 가장 먼저 치솟는 핵심 선행 위험 신호", post_mortem: "무선 전파 구간에서 손실이 있었는지 직접 확인" }
       },
       {
@@ -2088,15 +2153,15 @@
         analysis_usage: { weight: 0.15, pre_detection: "신호 세기는 좋은데 통로가 막혀 통신 지연이 임박했음을 사전 감지", post_mortem: "신호 양호 시 발생하는 무선 채널 과부하(SCN-03)의 결정적 증거" }
       },
       {
-        id: "M09", key: "gw_rtt_ms", name_ko: "게이트웨이 응답 시간", name_en: "Gateway Ping RTT",
-        layer: "네트워크·소켓 전송", layer_code: "L3_L4", unit: "ms",
-        description: "AGV에서 가장 가까운 유선 네트워크 관문(게이트웨이)까지 패킷이 왕복하는 시간입니다.",
-        thresholds: { normal: "10 ms 미만", warning: "10 ~ 40 ms", critical: "50 ms 초과" },
+        id: "M09", key: "gw_rtt_ms", name_ko: "게이트웨이 Ping 응답 지연 및 패킷 손실률 (Ping Latency & Packet Loss)", name_en: "Gateway Ping Latency (RTT) & Packet Loss (%)",
+        layer: "네트워크·소켓 전송", layer_code: "L3_L4", unit: "ms / %",
+        description: "AGV에서 가장 가까운 유선 네트워크 관문(게이트웨이)까지 Ping이 왕복하는 응답 시간(Ping Latency)과 무응답 손실 비율(Packet Loss %)입니다.",
+        thresholds: { normal: "10 ms 미만 (손실 0%)", warning: "10 ~ 40 ms (손실 1~5%)", critical: "50 ms 초과 (손실 > 5%)" },
         collection_location: "AGV/AMR", interval_local: "2초", interval_report: "30초 정기 보고 시 요약 동봉",
         recommended_interval: "AGV 내부 기록 2초 / 정기 보고 30초",
-        system_load: { level: "낮음", cpu_overhead: "0.1% 미만", network_overhead: "2초당 작은 패킷 1개(64B)", detail: "AGV에서 게이트웨이 IP로 가벼운 Ping 측정" },
-        collection_method: { interface: "ICMP Echo Probe", command: "ping -c 1 -W 1 <GATEWAY_IP>", code_snippet: "gw_rtt_ms = async_icmp_probe(gateway_ip, timeout=0.5)" },
-        analysis_usage: { weight: 0.15, pre_detection: "무선 구간 응답 지연 상승 조기 포착", post_mortem: "무선 구간(AGV↔관문) 문제인지 사내 유선망/ACS 서버 문제인지 구간을 정확히 분리" }
+        system_load: { level: "낮음", cpu_overhead: "0.1% 미만", network_overhead: "2초당 작은 패킷 1개(64B)", detail: "AGV에서 게이트웨이 IP로 가벼운 Ping Latency 및 Packet Loss 동시 측정" },
+        collection_method: { interface: "ICMP Echo Probe (Ping Latency & Packet Loss)", command: "ping -c 1 -W 1 <GATEWAY_IP>", code_snippet: "gw_rtt_ms, pkt_loss = async_icmp_probe(gateway_ip, timeout=0.3)" },
+        analysis_usage: { weight: 0.15, pre_detection: "무선 구간 Ping 응답 지연 및 패킷 손실 상승 조기 포착", post_mortem: "무선 구간(AGV↔관문) 문제인지 사내 유선망/ACS 서버 문제인지 구간을 정확히 분리" }
       },
       {
         id: "M10", key: "jitter_ms", name_ko: "응답 시간 흔들림 폭", name_en: "RTT Jitter",
@@ -2132,20 +2197,20 @@
         analysis_usage: { weight: 0.10, pre_detection: "실제 제어·보고 소켓이 겪는 지연 상승 감지", post_mortem: "게이트웨이 응답 시간(M09)과 비교해 무선 vs 유선/서버 지연 구분" }
       },
       {
-        id: "M13", key: "send_q_bytes", name_ko: "소켓 송신 대기 데이터양", name_en: "Socket Send-Q Bytes",
+        id: "M13", key: "send_q_bytes", name_ko: "소켓 송신 대기열 크기 (Send Queue / Socket Send-Q)", name_en: "Socket Send Queue (Send-Q Bytes)",
         layer: "네트워크·소켓 전송", layer_code: "L3_L4", unit: "Bytes",
-        description: "프로그램이 보냈으나 상대방에게 전달되지 못해 출발지 버퍼 대기열에 쌓여 있는 데이터양입니다.",
+        description: "프로그램이 보냈으나 상대방에게 전달되지 못해 출발지 버퍼 대기열(Send Queue)에 쌓여 있는 데이터양입니다.",
         thresholds: { normal: "0 Bytes", warning: "1 B ~ 4 KB", critical: "4 KB 초과" },
         collection_location: "AGV/AMR, ACS", interval_local: "1초", interval_report: "30초 정기 보고 시 요약 동봉",
         recommended_interval: "AGV 및 ACS 내부 1초 / 정기 보고 30초",
         system_load: { level: "매우 낮음", cpu_overhead: "0.03% 미만", network_overhead: "0 B/s", detail: "OS 소켓 송신 버퍼 크기 조회" },
         collection_method: { interface: "ioctl(SIOCOUTQ) / ss -tnp", command: "ss -tnp | awk '{print $2}'", code_snippet: "send_q = fcntl.ioctl(sock.fileno(), termios.TIOCOUTQ, b'\\x00'*4)" },
-        analysis_usage: { weight: 0.15, pre_detection: "송신 대기열이 3초 이상 0으로 비워지지 않고 쌓이면 수 초 내 통신 단절 100% 예고!", post_mortem: "통신 불통으로 송신이 막힌 정확한 시각 확인" }
+        analysis_usage: { weight: 0.15, pre_detection: "송신 대기열(Send Queue)이 3초 이상 0으로 비워지지 않고 쌓이면 수 초 내 통신 단절 100% 예고!", post_mortem: "통신 불통으로 송신이 막힌 정확한 시각 확인" }
       },
       {
-        id: "M14", key: "recv_q_bytes", name_ko: "소켓 수신 대기 데이터양", name_en: "Socket Recv-Q Bytes",
+        id: "M14", key: "recv_q_bytes", name_ko: "소켓 수신 대기열 크기 (Recv Queue / Socket Recv-Q)", name_en: "Socket Receive Queue (Recv-Q Bytes)",
         layer: "네트워크·소켓 전송", layer_code: "L3_L4", unit: "Bytes",
-        description: "통신으로 도착은 했으나 AGV 또는 ACS 프로그램이 바빠서 아직 읽어가지 못한 데이터양입니다.",
+        description: "통신으로 도착은 했으나 AGV 또는 ACS 프로그램이 바빠서 아직 읽어가지 못해 수신 대기열(Recv Queue)에 쌓인 데이터양입니다.",
         thresholds: { normal: "0 Bytes", warning: "1 B ~ 2 KB", critical: "2 KB 초과" },
         collection_location: "AGV/AMR, ACS", interval_local: "1초", interval_report: "30초 정기 보고 시 요약 동봉",
         recommended_interval: "AGV 및 ACS 내부 1초 / 정기 보고 30초",
@@ -2154,26 +2219,26 @@
         analysis_usage: { weight: 0.15, pre_detection: "통신 프로그램 처리 지연 조기 감지", post_mortem: "와이파이는 멀쩡한데 프로그램이 일시 멈춰서 끊긴 사례(SCN-04)를 가려내는 결정적 증거!" }
       },
       {
-        id: "M15", key: "hb_delta_sec", name_ko: "30초 보고 도착 시간 간격", name_en: "Report Arrival Interval",
+        id: "M15", key: "hb_delta_sec", name_ko: "30초 보고 도착 간격 및 응답 시간 초과 (Heartbeat Timeout & Interval)", name_en: "Heartbeat Timeout & Report Arrival Interval",
         layer: "상위 관제·시스템 상태", layer_code: "L7_SYS", unit: "초(sec)",
-        description: "ACS 서버가 AGV로부터 정기 보고를 실제로 받은 시간 간격입니다(정상 기준: 30.0초).",
-        thresholds: { normal: "29.5 ~ 30.5 초", warning: "31.0 ~ 38.0 초", critical: "45.0 초 초과 (끊김)" },
+        description: "ACS 서버가 AGV로부터 정기 보고를 실제로 받은 시간 간격(정상 기준: 30.0초) 및 응답 시간 초과(Heartbeat Timeout) 여부입니다.",
+        thresholds: { normal: "29.5 ~ 30.5 초", warning: "31.0 ~ 38.0 초", critical: "45.0 초 초과 (Heartbeat Timeout)" },
         collection_location: "ACS", interval_local: "매 보고 수신 시 & 1초 감시", interval_report: "매 보고 시 기록",
-        recommended_interval: "ACS 서버 매 보고 수신 시 및 1초 타임아웃 감시",
+        recommended_interval: "ACS 서버 매 보고 수신 시 및 1초 Heartbeat Timeout 감시",
         system_load: { level: "매우 낮음", cpu_overhead: "0.01% 미만", network_overhead: "0 B/s", detail: "ACS 서버 수신 시각 차이 계산" },
         collection_method: { interface: "ACS 수신 핸들러 타임스탬프", command: "T_arrival_now - T_arrival_prev", code_snippet: "hb_delta_sec = time.monotonic() - last_report_ts[agv_id]" },
-        analysis_usage: { weight: 0.10, pre_detection: "보고 간격이 30초 → 33초 → 37초로 점점 밀리는 현상으로 불안정 AGV 조기 식별", post_mortem: "ACS 관점의 실제 끊김 시각 및 지속 시간 확정" }
+        analysis_usage: { weight: 0.10, pre_detection: "보고 간격이 30초 → 33초 → 37초로 점점 밀리는 현상으로 Heartbeat Timeout 임박 AGV 조기 식별", post_mortem: "ACS 관점의 실제 끊김 시각 및 지속 시간 확정" }
       },
       {
-        id: "M16", key: "reconnect_count", name_ko: "소켓 재연결 횟수 및 끊김 사유", name_en: "Reconnect Count & Reason Code",
-        layer: "상위 관제·시스템 상태", layer_code: "L7_SYS", unit: "회/시간",
-        description: "소켓 연결이 끊어져 다시 연결한 횟수와 끊어진 이유 코드(시간 초과, 강제 종료 등)입니다.",
-        thresholds: { normal: "0 회/시간", warning: "1 ~ 2 회/시간", critical: "3 회/시간 이상" },
+        id: "M16", key: "reconnect_count", name_ko: "TCP 소켓 연결 상태 및 재연결 횟수 (TCP Socket State & Reconnect)", name_en: "TCP Socket State & Reconnect Reason Code",
+        layer: "상위 관제·시스템 상태", layer_code: "L7_SYS", unit: "State / 회/시간",
+        description: "TCP 소켓 연결 상태(ESTABLISHED, SYN_SENT, CLOSE_WAIT 등)와 다시 연결한 횟수 및 끊어진 이유 코드(시간 초과, 강제 종료 등)입니다.",
+        thresholds: { normal: "ESTABLISHED (0회/시간)", warning: "SYN_SENT / 1~2회/시간", critical: "CLOSE_WAIT·TIMEOUT (3회/시간 이상)" },
         collection_location: "AGV/AMR, ACS", interval_local: "발생 즉시", interval_report: "발생 시 즉시 기록",
-        recommended_interval: "연결/끊김 이벤트 발생 즉시 기록",
-        system_load: { level: "매우 낮음", cpu_overhead: "0.01% 미만", network_overhead: "0 B/s", detail: "소켓 연결/종료 이벤트 로그 기록" },
-        collection_method: { interface: "AGV & ACS 소켓 이벤트 로그", command: "errno (ETIMEDOUT / ECONNRESET / EOF)", code_snippet: "log_socket_event(agv_id, errno=sock_err, state='RECONNECTED')" },
-        analysis_usage: { weight: 0.05, pre_detection: "반복 재연결 AGV 집중 감시", post_mortem: "무선 단절에 의한 시간 초과(ETIMEDOUT)인지 프로그램 재시작(RST)인지 구분" }
+        recommended_interval: "1초 주기 TCP Socket State 확인 및 연결/끊김 이벤트 발생 즉시 기록",
+        system_load: { level: "매우 낮음", cpu_overhead: "0.01% 미만", network_overhead: "0 B/s", detail: "소켓 상태(tcpi_state) 및 연결/종료 이벤트 로그 기록" },
+        collection_method: { interface: "AGV & ACS getsockopt(TCP_INFO) / ss -tnp", command: "ss -tnp dst <PEER_IP> | awk 'NR>1{print $1}'", code_snippet: "log_socket_event(agv_id, state=tcp_state, errno=sock_err)" },
+        analysis_usage: { weight: 0.05, pre_detection: "반복 재연결 또는 CLOSE_WAIT 체류 AGV 집중 감시", post_mortem: "무선 단절에 의한 시간 초과(ETIMEDOUT)인지 프로그램 재시작(RST/CLOSE_WAIT)인지 구분" }
       },
       {
         id: "M17", key: "cpu_load", name_ko: "AGV 컴퓨터(CPU) 사용률", name_en: "AGV Host CPU & System Load",
