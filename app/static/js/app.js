@@ -664,6 +664,43 @@
     }
   };
 
+  function applySimulationStageHighlights(stepIdx) {
+    const targetIds = [
+      "panel-floor-map",
+      "panel-agv-table",
+      "panel-agv-minichart",
+      "kpi-card-predetect",
+      "kpi-card-fleet",
+      "panel-recent-reports",
+      "panel-recent-incidents"
+    ];
+    targetIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.classList.remove("sim-panel-highlight-warn", "sim-panel-highlight-crit", "sim-panel-highlight-ok");
+      }
+    });
+
+    if (!stepIdx) return;
+
+    const baseCls = stepIdx === 3
+      ? "sim-panel-highlight-crit"
+      : (stepIdx === 4 ? "sim-panel-highlight-ok" : "sim-panel-highlight-warn");
+
+    ["panel-floor-map", "panel-agv-table", "panel-agv-minichart"].forEach((id) => {
+      document.getElementById(id)?.classList.add(baseCls);
+    });
+
+    if (stepIdx === 2) {
+      document.getElementById("kpi-card-predetect")?.classList.add("sim-panel-highlight-warn");
+    } else if (stepIdx === 3) {
+      document.getElementById("kpi-card-fleet")?.classList.add("sim-panel-highlight-crit");
+      document.getElementById("panel-recent-reports")?.classList.add("sim-panel-highlight-crit");
+    } else if (stepIdx === 4) {
+      document.getElementById("panel-recent-incidents")?.classList.add("sim-panel-highlight-ok");
+    }
+  }
+
   function renderLiveScenarioMonitor(ov) {
     const container = document.getElementById("sim-live-monitor");
     if (!container) return;
@@ -715,12 +752,18 @@
 
       const stepCls = (idx) => {
         if (idx < stepIdx) return "done";
-        if (idx === stepIdx) return stepIdx === 3 ? "current-crit" : "current";
+        if (idx === stepIdx) {
+          if (stepIdx === 3) return "current-crit";
+          if (stepIdx === 4) return "current-ok";
+          return "current";
+        }
         return "";
       };
 
-      const pillsHtml = spec.metrics(agv).map((m) => `
-        <div class="sim-metric-pill ${m.cls}">
+      applySimulationStageHighlights(stepIdx);
+
+      const pillsHtml = spec.metrics(agv).map((m, idx) => `
+        <div class="sim-metric-pill ${m.cls} ${idx >= 1 ? "pill-focus" : ""}">
           <span class="sim-metric-label">${escapeHtml(m.label)}</span>
           <span class="sim-metric-value mono">${escapeHtml(m.value)}</span>
         </div>
@@ -738,7 +781,7 @@
         <div class="sim-monitor-card ${cardPhaseCls}" id="injector-status-msg">
           <div class="sim-monitor-header">
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-              <span class="badge badge-sky mono">${escapeHtml(active.agv_id)}</span>
+              <span class="badge badge-warn mono">🎯 대상: ${escapeHtml(active.agv_id)}</span>
               <strong style="font-size:0.8rem;">${escapeHtml(active.scenario_code)}: ${escapeHtml(spec.title)}</strong>
             </div>
             <div style="display:flex; align-items:center; gap:6px;">
@@ -748,10 +791,10 @@
           </div>
 
           <div class="sim-phase-steps">
-            <div class="sim-phase-step ${stepCls(1)}">① 징후 열화 시작</div>
-            <div class="sim-phase-step ${stepCls(2)}">② 사전 감지 알림</div>
-            <div class="sim-phase-step ${stepCls(3)}">③ 30초 보고 끊김</div>
-            <div class="sim-phase-step ${stepCls(4)}">④ 복구 &amp; 원인판별</div>
+            <div class="sim-phase-step ${stepCls(1)}">① 징후 열화 (지도·지표)</div>
+            <div class="sim-phase-step ${stepCls(2)}">② 사전 감지 (조기 알림)</div>
+            <div class="sim-phase-step ${stepCls(3)}">③ 보고 끊김 (30초 보고)</div>
+            <div class="sim-phase-step ${stepCls(4)}">④ 복구·분석 (원인 이력)</div>
           </div>
 
           <div class="sim-progress-track">
@@ -765,6 +808,8 @@
       `;
       return;
     }
+
+    applySimulationStageHighlights(0);
 
     if (state.lastActiveScenarioInfo) {
       const done = state.lastActiveScenarioInfo;
@@ -926,10 +971,16 @@
         const simHint = spec
           ? `<div class="text-caption mono color-crit" style="font-size:0.64rem; margin-top:2px; white-space:normal; word-break:keep-all;">⚡ ${escapeHtml(spec.badgeText(agv))}</div>`
           : "";
+        const rowSimCls = effCode
+          ? (agv.conn_state === "DISCONNECTED" ? "sim-target-row sim-target-crit" : "sim-target-row")
+          : "";
+        const targetTag = effCode
+          ? ` <span class="badge badge-warn mono" style="font-size:0.62rem; padding:1px 5px;">🎯 체험</span>`
+          : "";
 
         return `
-          <tr class="${isSel ? "selected-row" : ""}" data-agv-row="${escapeHtml(agv.agv_id)}">
-            <td class="text-left mono"><strong>${escapeHtml(agv.agv_id)}</strong></td>
+          <tr class="${isSel ? "selected-row" : ""} ${rowSimCls}" data-agv-row="${escapeHtml(agv.agv_id)}">
+            <td class="text-left mono"><strong>${escapeHtml(agv.agv_id)}</strong>${targetTag}</td>
             <td class="text-center mono">${escapeHtml(agv.zone_id || agv.ap_id)}</td>
             <td class="text-right num ${rssiCls}">${rssi} dBm</td>
             <td class="text-right num">${snr} dB</td>
@@ -1237,7 +1288,23 @@
         ctx.restore();
       }
 
-      if (isSelected || agv.conn_state !== "CONNECTED") {
+      if (effScenarioCode) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(gx, gy, 28, 0, Math.PI * 2);
+        ctx.fillStyle = agv.conn_state === "DISCONNECTED"
+          ? "rgba(225, 29, 72, 0.20)"
+          : "rgba(217, 119, 6, 0.22)";
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(gx, gy, 23, 0, Math.PI * 2);
+        ctx.strokeStyle = agv.conn_state === "DISCONNECTED" ? colors.rose : colors.amber;
+        ctx.lineWidth = 2.6;
+        ctx.setLineDash([5, 3]);
+        ctx.stroke();
+        ctx.restore();
+      } else if (isSelected || agv.conn_state !== "CONNECTED") {
         ctx.save();
         ctx.beginPath();
         ctx.arc(gx, gy, isSelected ? 17 : 14, 0, Math.PI * 2);

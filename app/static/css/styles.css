@@ -897,17 +897,61 @@ pre {
 }
 
 .sim-phase-step.current {
-  border-color: var(--status-warn);
+  border: 2px solid var(--status-warn);
   background-color: var(--status-warn-soft);
   color: var(--status-warn);
-  font-weight: 700;
+  font-weight: 800;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.22);
+  transform: translateY(-1px);
 }
 
 .sim-phase-step.current-crit {
-  border-color: var(--status-crit);
+  border: 2px solid var(--status-crit);
   background-color: var(--status-crit-soft);
   color: var(--status-crit);
-  font-weight: 700;
+  font-weight: 800;
+  box-shadow: 0 0 0 3px rgba(225, 29, 72, 0.22);
+  transform: translateY(-1px);
+}
+
+.sim-phase-step.current-ok {
+  border: 2px solid var(--status-ok);
+  background-color: var(--status-ok-soft);
+  color: var(--status-ok);
+  font-weight: 800;
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.22);
+  transform: translateY(-1px);
+}
+
+.sim-metric-pill.pill-focus {
+  border: 2px solid var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.20);
+}
+
+/* 대상 AGV 행 및 단계별 대상 패널 하이라이트 */
+.telemetry-table tbody tr.sim-target-row {
+  background-color: rgba(217, 119, 6, 0.11);
+  box-shadow: inset 4px 0 0 var(--status-warn);
+}
+
+.telemetry-table tbody tr.sim-target-row.sim-target-crit {
+  background-color: rgba(225, 29, 72, 0.11);
+  box-shadow: inset 4px 0 0 var(--status-crit);
+}
+
+.sim-panel-highlight-warn {
+  border: 2px solid var(--status-warn) !important;
+  box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.18), var(--shadow-card) !important;
+}
+
+.sim-panel-highlight-crit {
+  border: 2px solid var(--status-crit) !important;
+  box-shadow: 0 0 0 4px rgba(225, 29, 72, 0.20), var(--shadow-card) !important;
+}
+
+.sim-panel-highlight-ok {
+  border: 2px solid var(--status-ok) !important;
+  box-shadow: 0 0 0 4px rgba(5, 150, 105, 0.18), var(--shadow-card) !important;
 }
 
 .sim-progress-track {
