@@ -52,7 +52,7 @@ async def lifespan(app: FastAPI):
         db.close()
 
 
-app = FastAPI(title="AGV/AMR-ACS Network Telemetry Dashboard", version="1.1.3", lifespan=lifespan)
+app = FastAPI(title="AGV/AMR-ACS Network Telemetry Dashboard", version="1.1.5", lifespan=lifespan)
 
 if STATIC_DIR.is_dir():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
@@ -112,7 +112,7 @@ def health():
     return {
         "status": "ok" if healthy else "degraded",
         "service": "network_dashboard",
-        "version": "1.1.3",
+        "version": "1.1.5",
         "uptime_sec": round(time.time() - START_TIME, 1),
         "server_time_ms": int(time.time() * 1000),
         "config": cfg,

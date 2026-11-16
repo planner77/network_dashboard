@@ -33,6 +33,7 @@
     showHeatmap: true,
     showDangerZones: true,
     overview: null,
+    lastActiveScenarioInfo: null,
     agvTimeseries: {
       agv_id: "AGV-02",
       series: [],
@@ -49,6 +50,7 @@
 
     // Tab 3: Metrics Catalog State (AGV/AMR & ACS Only)
     metricsCatalog: [],
+    filteredMetricsList: [],
     selectedMetricId: "M01",
     catalogLayerFilter: "ALL",
     catalogLocFilter: "ALL",
@@ -481,8 +483,8 @@
       tab: "tab-catalog",
       targetSelector: "#panel-catalog-table",
       title: "7단계: AGV/AMR과 ACS에서 수집하는 21종 상태 항목 백과사전",
-      body: "3번 탭에는 별도의 무선 공유기(AP) 장비 접근 권한 없이도 오직 AGV/AMR과 ACS 서버 양단에서만 직접 수집할 수 있는 21가지 항목(MIMO 안테나별 신호 세기·편차, 주파수·채널 번호·대역폭, 링크 품질 지수 포함)의 의미, 문제 발생 상황, 사전 감지 및 사후 분석 활용법, 실제 수집 명령어가 정리되어 있습니다.",
-      takeaway: "일람표를 아래로 스크롤해도 상단 컬럼 제목 줄이 고정(Sticky Header)되어 편리하게 비교할 수 있습니다."
+      body: "3번 탭에는 별도의 무선 공유기(AP) 장비 접근 권한 없이도 오직 AGV/AMR과 ACS 서버 양단에서만 직접 수집할 수 있는 21가지 항목(MIMO 안테나별 신호 세기·편차, 주파수·채널 번호·대역폭, 링크 품질 지수 포함)을 전체 화면 폭으로 한눈에 볼 수 있으며, 각 행이나 카드를 클릭하면 팝업 모달로 상세 설명과 수집 명령어를 확인할 수 있습니다.",
+      takeaway: "전체 목록에서 원하는 항목을 클릭하면 상세 설명 모달이 열리며 이전/다음 항목으로 바로 이동할 수 있습니다."
     },
     {
       tab: "tab-roles",
@@ -591,7 +593,199 @@
     return "정상 연결";
   }
 
+  const SCENARIO_LIVE_SPECS = {
+    "SCN-01": {
+      title: "기지국(AP) 변경 지연 및 실패 (로밍 실패)",
+      describe: (agv, phase) => {
+        if (phase === "RECOVERING") {
+          return `뒤늦게 새 기지국으로 변경 완료(로밍 지연 ${Math.round(agv.roaming_ms || 280)}ms) 후 끊김 전후 120초 상세 기록을 ACS로 전송 중입니다.`;
+        }
+        return `AGV가 이동하며 구역을 벗어나고 있으나 기존 AP(${(agv.bssid || "").slice(-5)})에 고착되어 변경을 못 하고 있습니다. 신호 세기 급락과 비콘 신호 놓침이 진행 중입니다.`;
+      },
+      metrics: (agv) => [
+        { label: "현재 구역 / 연결 BSSID", value: `${agv.zone_id || "-"} / ${(agv.bssid || "").slice(-5)}`, cls: "pill-warn" },
+        { label: "신호 세기(RSSI)", value: `${Number(agv.rssi).toFixed(1)} dBm`, cls: agv.rssi <= -75 ? "pill-crit" : (agv.rssi <= -68 ? "pill-warn" : "pill-ok") },
+        { label: "비콘 놓침 / 재시도", value: `${agv.beacon_loss || 0}회/s · ${Number(agv.l2_retry_rate || 0).toFixed(0)}%`, cls: (agv.beacon_loss || 0) >= 2 ? "pill-crit" : "pill-warn" },
+        { label: "로밍 소요 시간", value: `${Math.round(agv.roaming_ms || 0)} ms`, cls: (agv.roaming_ms || 0) > 150 ? "pill-crit" : "pill-ok" }
+      ],
+      badgeText: (agv) => `SCN-01 로밍지연 · ${Math.round(agv.rssi)}dBm`
+    },
+    "SCN-02": {
+      title: "철제 랙 음영 구역 & 용접 설비 전파 간섭",
+      describe: (_agv, phase) => {
+        if (phase === "RECOVERING") {
+          return "음영·설비 간섭 구간을 벗어나며 신호와 SNR이 회복 중이며, 위치 좌표(X,Y) 기반 음영 지도 기록이 저장됩니다.";
+        }
+        return "철제 구조물 차폐와 용접기 고주파 잡음이 동시에 유입되어 주변 잡음(Noise Floor)이 상승하고 신호대잡음비(SNR) 및 무선 속도가 붕괴되고 있습니다.";
+      },
+      metrics: (agv) => [
+        { label: "신호 세기(RSSI)", value: `${Number(agv.rssi).toFixed(1)} dBm`, cls: agv.rssi <= -75 ? "pill-crit" : "pill-warn" },
+        { label: "주변 잡음(Noise)", value: `${Number(agv.noise_floor || -90).toFixed(1)} dBm`, cls: (agv.noise_floor || -95) >= -84 ? "pill-crit" : "pill-warn" },
+        { label: "신호대잡음(SNR)", value: `${Number(agv.snr).toFixed(0)} dB`, cls: agv.snr <= 17 ? "pill-crit" : (agv.snr <= 24 ? "pill-warn" : "pill-ok") },
+        { label: "무선 속도(PHY)", value: `${Number(agv.phy_rate || 144).toFixed(0)} Mbps`, cls: (agv.phy_rate || 144) <= 24 ? "pill-crit" : "pill-warn" }
+      ],
+      badgeText: (agv) => `SCN-02 잡음${Math.round(agv.noise_floor || -80)} · SNR ${Math.round(agv.snr)}dB`
+    },
+    "SCN-03": {
+      title: "무선 채널 혼잡 (동시 접속 과부하)",
+      describe: (agv, phase) => {
+        if (phase === "RECOVERING") {
+          return "채널 혼잡이 해소되며 관문 응답 시간(RTT)과 흔들림(Jitter)이 정상 수준으로 돌아오고 있습니다.";
+        }
+        return `주목: 신호 세기(${Number(agv.rssi).toFixed(0)}dBm)와 SNR(${Number(agv.snr).toFixed(0)}dB)은 아주 좋습니다! 그러나 동일 채널 혼잡도가 폭증해 관문 응답(RTT)과 흔들림이 밀리고 있습니다.`;
+      },
+      metrics: (agv) => [
+        { label: "신호 세기(정상 유지!)", value: `${Number(agv.rssi).toFixed(1)} dBm ✓`, cls: "pill-ok" },
+        { label: "채널 혼잡도", value: `${Number(agv.channel_util || 25).toFixed(0)} %`, cls: (agv.channel_util || 0) >= 65 ? "pill-crit" : ((agv.channel_util || 0) >= 45 ? "pill-warn" : "pill-ok") },
+        { label: "관문 응답 / 흔들림", value: `${Number(agv.gw_rtt_ms).toFixed(0)}ms / ${Number(agv.jitter_ms || 0).toFixed(0)}ms`, cls: agv.gw_rtt_ms >= 50 ? "pill-crit" : "pill-warn" },
+        { label: "소켓 재전송 / Send-Q", value: `${agv.tcp_retrans || 0}회/s · ${((agv.send_q_bytes || 0) / 1024).toFixed(1)}KB`, cls: (agv.tcp_retrans || 0) >= 3 ? "pill-crit" : "pill-warn" }
+      ],
+      badgeText: (agv) => `SCN-03 채널혼잡 ${Math.round(agv.channel_util || 0)}%`
+    },
+    "SCN-04": {
+      title: "통신 프로그램 일시 멈춤 (CPU·버퍼 과부하)",
+      describe: (agv, phase) => {
+        if (phase === "RECOVERING") {
+          return "AGV CPU 점유율이 낮아지며 밀려 있던 수신 대기열(Recv-Q)이 비워지고, 와이파이 문제가 아님을 자동 판별합니다.";
+        }
+        return `주목: 와이파이 신호(${Number(agv.rssi).toFixed(0)}dBm)와 관문 응답(${Number(agv.gw_rtt_ms).toFixed(1)}ms)은 100% 정상입니다! 하지만 AGV CPU 폭주로 통신 프로그램이 멈춰 수신 대기열(Recv-Q)이 쌓이고 있습니다.`;
+      },
+      metrics: (agv) => [
+        { label: "와이파이 / 응답(정상!)", value: `${Number(agv.rssi).toFixed(0)}dBm · ${Number(agv.gw_rtt_ms).toFixed(1)}ms ✓`, cls: "pill-ok" },
+        { label: "AGV CPU 사용률", value: `${Number(agv.cpu_load || 34).toFixed(1)} %`, cls: (agv.cpu_load || 0) >= 85 ? "pill-crit" : ((agv.cpu_load || 0) >= 65 ? "pill-warn" : "pill-ok") },
+        { label: "수신 대기열(Recv-Q)", value: `${((agv.recv_q_bytes || 0) / 1024).toFixed(1)} KB`, cls: (agv.recv_q_bytes || 0) >= 2048 ? "pill-crit" : ((agv.recv_q_bytes || 0) > 0 ? "pill-warn" : "pill-ok") },
+        { label: "송신 대기열(Send-Q)", value: `${((agv.send_q_bytes || 0) / 1024).toFixed(1)} KB`, cls: (agv.send_q_bytes || 0) >= 4096 ? "pill-crit" : "pill-ok" }
+      ],
+      badgeText: (agv) => `SCN-04 CPU ${Math.round(agv.cpu_load || 0)}% · RecvQ ${((agv.recv_q_bytes || 0) / 1024).toFixed(0)}K`
+    }
+  };
+
+  function renderLiveScenarioMonitor(ov) {
+    const container = document.getElementById("sim-live-monitor");
+    if (!container) return;
+
+    const activeList = Array.isArray(ov.active_scenarios) ? ov.active_scenarios : [];
+    const fleet = Array.isArray(ov.fleet) ? ov.fleet : [];
+
+    // Highlight active trigger button(s)
+    const activeCodes = new Set(activeList.map((a) => a.scenario_code));
+    document.querySelectorAll(".btn-scenario-trigger").forEach((btn) => {
+      const code = btn.getAttribute("data-scn");
+      btn.classList.toggle("active-sim", activeCodes.has(code));
+    });
+
+    if (activeList.length > 0) {
+      // Prefer selected AGV's active scenario if present, else first active
+      const active = activeList.find((a) => a.agv_id === state.selectedAgvId) || activeList[0];
+      const agv = fleet.find((f) => f.agv_id === active.agv_id) || {};
+      const spec = SCENARIO_LIVE_SPECS[active.scenario_code] || SCENARIO_LIVE_SPECS["SCN-01"];
+
+      state.lastActiveScenarioInfo = {
+        agv_id: active.agv_id,
+        scenario_code: active.scenario_code,
+        title: spec.title
+      };
+
+      const elapsed = Number(active.elapsed_sec || 0);
+      const remaining = Number(active.remaining_sec || 0);
+      const totalDur = Math.max(1, elapsed + remaining);
+      const pct = Math.min(100, Math.max(4, (elapsed / totalDur) * 100));
+      const phase = active.phase || "DEGRADING";
+      const isPreWarn = agv.conn_state === "PRE_WARNING" && phase === "DEGRADING";
+
+      let cardPhaseCls = "";
+      let phaseBadge = `<span class="badge badge-warn">1단계: 이상 징후 진행 중</span>`;
+      let stepIdx = 1;
+      if (isPreWarn) {
+        phaseBadge = `<span class="badge badge-warn">2단계: 사전 감지 경고 발령! (위험도 ${Number(agv.risk_score || 0).toFixed(0)}점)</span>`;
+        stepIdx = 2;
+      } else if (phase === "DISCONNECTED") {
+        cardPhaseCls = "phase-disconnected";
+        phaseBadge = `<span class="badge badge-crit">3단계: 통신 끊김 발생 (30초 보고 누락!)</span>`;
+        stepIdx = 3;
+      } else if (phase === "RECOVERING") {
+        cardPhaseCls = "phase-recovering";
+        phaseBadge = `<span class="badge badge-ok">4단계: 자동 복구 &amp; 120초 상세 기록 전송</span>`;
+        stepIdx = 4;
+      }
+
+      const stepCls = (idx) => {
+        if (idx < stepIdx) return "done";
+        if (idx === stepIdx) return stepIdx === 3 ? "current-crit" : "current";
+        return "";
+      };
+
+      const pillsHtml = spec.metrics(agv).map((m) => `
+        <div class="sim-metric-pill ${m.cls}">
+          <span class="sim-metric-label">${escapeHtml(m.label)}</span>
+          <span class="sim-metric-value mono">${escapeHtml(m.value)}</span>
+        </div>
+      `).join("");
+
+      container.innerHTML = `
+        <div class="sim-monitor-card ${cardPhaseCls}" id="injector-status-msg">
+          <div class="sim-monitor-header">
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <span class="badge badge-sky mono">${escapeHtml(active.agv_id)}</span>
+              <strong style="font-size:0.8rem;">${escapeHtml(active.scenario_code)}: ${escapeHtml(spec.title)}</strong>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              ${phaseBadge}
+              <span class="text-caption mono">${elapsed.toFixed(0)}s / ${totalDur.toFixed(0)}s</span>
+            </div>
+          </div>
+
+          <div class="sim-phase-steps">
+            <div class="sim-phase-step ${stepCls(1)}">① 징후 열화 시작</div>
+            <div class="sim-phase-step ${stepCls(2)}">② 사전 감지 알림</div>
+            <div class="sim-phase-step ${stepCls(3)}">③ 30초 보고 끊김</div>
+            <div class="sim-phase-step ${stepCls(4)}">④ 복구 &amp; 원인판별</div>
+          </div>
+
+          <div class="sim-progress-track">
+            <div class="sim-progress-fill ${phase === "RECOVERING" ? "recovering" : ""}" style="width:${pct.toFixed(1)}%;"></div>
+          </div>
+
+          <div class="sim-explain-text">${escapeHtml(spec.describe(agv, phase))}</div>
+
+          <div class="sim-metrics-grid">${pillsHtml}</div>
+        </div>
+      `;
+      return;
+    }
+
+    if (state.lastActiveScenarioInfo) {
+      const done = state.lastActiveScenarioInfo;
+      container.innerHTML = `
+        <div class="sim-monitor-card phase-completed" id="injector-status-msg">
+          <div class="sim-monitor-header">
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <span class="badge badge-ok">모사 완료</span>
+              <strong style="font-size:0.8rem;">[${escapeHtml(done.agv_id)}] ${escapeHtml(done.scenario_code)} — ${escapeHtml(done.title)}</strong>
+            </div>
+            <button class="btn btn-sm btn-primary" type="button" id="btn-sim-goto-rca">2번 탭에서 1초 파형·원인 분석 보기 →</button>
+          </div>
+          <div class="sim-explain-text">
+            45초 가상 체험(징후 열화 → 사전 감지 → 연결 끊김 → 재연결 및 120초 상세 기록 전송)이 완료되어 하단 사후 원인 분석 이력에 기록되었습니다.
+          </div>
+        </div>
+      `;
+      document.getElementById("btn-sim-goto-rca")?.addEventListener("click", () => {
+        switchTab("tab-rca");
+        selectRcaScenario(done.scenario_code);
+      });
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="injector-status-bar" id="injector-status-msg">
+        <span>⚡ 위 4가지 상황 버튼을 누르면 선택한 AGV에서 45초간 <strong>[이상 징후 → 사전 감지 알림 → 연결 끊김 → 자동 복구]</strong> 과정과 원인 지표 변화를 실시간으로 모사합니다.</span>
+      </div>
+    `;
+  }
+
   function updateLiveKpisAndTables(ov) {
+    renderLiveScenarioMonitor(ov);
     const kpis = ov.kpis || {};
     const tsdb = ov.tsdb_stats || {};
     const fleet = ov.fleet || [];
@@ -708,6 +902,11 @@
           stateBadge = `<span class="badge badge-warn">사전 감지 주의</span>`;
         }
 
+        const spec = agv.scenario_code && agv.scenario_code !== "NORMAL" ? SCENARIO_LIVE_SPECS[agv.scenario_code] : null;
+        const simHint = spec
+          ? `<div class="text-caption mono color-crit" style="font-size:0.64rem; margin-top:2px; white-space:normal; word-break:keep-all;">${escapeHtml(spec.badgeText(agv))}</div>`
+          : "";
+
         return `
           <tr class="${isSel ? "selected-row" : ""}" data-agv-row="${escapeHtml(agv.agv_id)}">
             <td class="text-left mono"><strong>${escapeHtml(agv.agv_id)}</strong></td>
@@ -717,7 +916,7 @@
             <td class="text-right num">${rtt} ms</td>
             <td class="text-right num ${retrans > 0 ? "color-warn" : ""}">${retrans} 회/s</td>
             <td class="text-right num"><strong class="${riskCls}">${risk}</strong></td>
-            <td class="text-center">${stateBadge}</td>
+            <td class="text-center">${stateBadge}${simHint}</td>
           </tr>
         `;
       }).join("");
@@ -769,8 +968,8 @@
             <td class="text-left mono"><span class="color-accent">${escapeHtml(inc.incident_id)}</span></td>
             <td class="text-left mono"><strong>${escapeHtml(inc.agv_id)}</strong></td>
             <td class="text-center"><span class="badge badge-crit mono">${escapeHtml(code)}</span></td>
-            <td class="text-left" style="max-width:220px; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(inc.title)}</td>
-            <td class="text-right num color-warn"><strong>끊김 ${Number(inc.lead_time_sec || 16.5).toFixed(1)}초 전 감지</strong></td>
+            <td class="text-left" style="white-space:normal; word-break:keep-all; min-width:140px;">${escapeHtml(inc.title)}</td>
+            <td class="text-right num color-warn"><strong>${Number(inc.lead_time_sec || 16.5).toFixed(1)}초 전</strong></td>
             <td class="text-center"><button class="btn btn-sm btn-primary" type="button">파형 분석 보기 →</button></td>
           </tr>
         `;
@@ -1045,6 +1244,17 @@
       ctx.textAlign = "center";
       ctx.fillText(labelTxt, gx, gy - 14);
 
+      if (agv.scenario_code && agv.scenario_code !== "NORMAL") {
+        const spec = SCENARIO_LIVE_SPECS[agv.scenario_code];
+        const calloutTxt = spec ? spec.badgeText(agv) : agv.scenario_code;
+        ctx.font = "700 9.5px 'JetBrains Mono', monospace";
+        const cw = ctx.measureText(calloutTxt).width + 10;
+        ctx.fillStyle = colors.rose;
+        ctx.fillRect(gx - cw / 2, gy + 11, cw, 15);
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillText(calloutTxt, gx, gy + 21.5);
+      }
+
       state._renderedAgvHitboxes.push({ agv_id: agv.agv_id, x: gx, y: gy, r: 22 });
     });
   }
@@ -1132,6 +1342,66 @@
     });
     ctx.stroke();
 
+    // 선택된 AGV가 특정 시나리오 모사 중이면 원인 핵심 지표를 함께 표시
+    const latestPt = series[series.length - 1] || {};
+    const ovFleet = (state.overview && state.overview.fleet) || [];
+    const curAgv = ovFleet.find((a) => a.agv_id === state.selectedAgvId) || {};
+    const activeCode = (curAgv.scenario_code && curAgv.scenario_code !== "NORMAL")
+      ? curAgv.scenario_code
+      : (latestPt.scenario_code && latestPt.scenario_code !== "NORMAL" ? latestPt.scenario_code : null);
+
+    const legendEl = document.getElementById("live-mini-chart-legend");
+    if (activeCode === "SCN-04" || activeCode === "SCN-03" || activeCode === "SCN-01" || activeCode === "SCN-02") {
+      let extraLabel = "";
+      let extraFn = null;
+      let extraColor = colors.indigo;
+      if (activeCode === "SCN-04") {
+        extraLabel = "┅ AGV CPU(%)";
+        extraFn = (pt) => riskToY(pt.cpu_load || 30);
+        extraColor = colors.indigo;
+      } else if (activeCode === "SCN-03") {
+        extraLabel = "┅ 채널 혼잡(%)";
+        extraFn = (pt) => riskToY(pt.channel_util || 25);
+        extraColor = colors.indigo;
+      } else if (activeCode === "SCN-02") {
+        extraLabel = "┅ SNR(x2)";
+        extraFn = (pt) => riskToY((pt.snr || 30) * 2.2);
+        extraColor = colors.emerald;
+      } else if (activeCode === "SCN-01") {
+        extraLabel = "┅ 무선재시도(%)";
+        extraFn = (pt) => riskToY(pt.l2_retry_rate || 3);
+        extraColor = colors.rose;
+      }
+      if (extraFn) {
+        ctx.save();
+        ctx.setLineDash([4, 3]);
+        ctx.strokeStyle = extraColor;
+        ctx.lineWidth = 1.7;
+        ctx.beginPath();
+        series.forEach((pt, idx) => {
+          const x = toX(idx), y = extraFn(pt);
+          if (idx === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        ctx.restore();
+      }
+      if (legendEl) {
+        legendEl.innerHTML = `
+          <span class="color-accent">━ 신호 세기(dBm)</span>
+          <span class="color-warn">━ 위험 점수</span>
+          <span style="color:${extraColor};">${extraLabel}</span>
+          <span class="color-ok">● 30초 보고</span>
+        `;
+      }
+    } else if (legendEl) {
+      legendEl.innerHTML = `
+        <span class="color-accent">━ 신호 세기(dBm)</span>
+        <span class="color-warn">━ 위험 점수(0~100)</span>
+        <span class="color-ok">● 30초 정기 보고</span>
+      `;
+    }
+
     series.forEach((pt, idx) => {
       if (idx % 30 === 0 || idx === n - 1) {
         const x = toX(idx);
@@ -1163,6 +1433,33 @@
     renderRcaScenarioView();
   }
 
+  const RCA_SIGNATURE_PILLS = {
+    "SCN-01": [
+      { label: "신호 세기(RSSI): -84dBm 급락", ok: false },
+      { label: "주변 잡음(Noise): -91dBm 정상", ok: true },
+      { label: "AP 변경(로밍): 340ms 지연", ok: false },
+      { label: "비콘 놓침: 초당 8회", ok: false }
+    ],
+    "SCN-02": [
+      { label: "신호 세기(RSSI): -85dBm 급락", ok: false },
+      { label: "주변 잡음(Noise): -75dBm 급증", ok: false },
+      { label: "신호대잡음(SNR): 10dB 붕괴", ok: false },
+      { label: "무선 연결 속도: 6Mbps 추락", ok: false }
+    ],
+    "SCN-03": [
+      { label: "신호 세기(RSSI): -60dBm 정상", ok: true },
+      { label: "신호대잡음(SNR): 28dB 정상", ok: true },
+      { label: "채널 혼잡도: 94% 포화", ok: false },
+      { label: "관문 응답(RTT): 340ms 폭증", ok: false }
+    ],
+    "SCN-04": [
+      { label: "신호 세기(RSSI): -58dBm 정상", ok: true },
+      { label: "채널·관문 응답(4.1ms): 정상", ok: true },
+      { label: "AGV CPU 사용률: 99.2% 폭주", ok: false },
+      { label: "소켓 수신대기열: 18.4KB 적체", ok: false }
+    ]
+  };
+
   function renderRcaScenarioView() {
     const code = state.selectedScenarioCode;
     const scn = state.scenariosMap[code] || FALLBACK_SCENARIOS[code] || FALLBACK_SCENARIOS["SCN-01"];
@@ -1172,6 +1469,19 @@
     setText("rca-legacy-desc", scn.legacy_30s_view || "");
     setText("rca-hybrid-desc", scn.hybrid_1s_view || "");
     setText("rca-hybrid-lead-badge", `끊김 ${leadSec}초 전 조기 알림!`);
+
+    const sigBar = document.getElementById("rca-scenario-signature-bar");
+    if (sigBar) {
+      const sigItems = RCA_SIGNATURE_PILLS[scn.code] || RCA_SIGNATURE_PILLS["SCN-01"];
+      sigBar.innerHTML = `
+        <span class="rca-sig-title">🔍 ${escapeHtml(scn.code)} 모사 핵심 구분 (정상 vs 이상):</span>
+        ${sigItems.map((it) => `
+          <span class="rca-sig-pill ${it.ok ? "sig-ok" : "sig-fail"}">
+            ${it.ok ? "✓" : "✖"} ${escapeHtml(it.label)}
+          </span>
+        `).join("")}
+      `;
+    }
 
     const jumpBtn = document.getElementById("btn-jump-predetect");
     if (jumpBtn) {
@@ -1233,6 +1543,7 @@
       setText("rca-cursor-annotation", `[${offStr}] ${pt.annotation || ""}`);
       setText("snap-offset", offStr);
       setText("snap-rf", `${Number(pt.rssi).toFixed(0)} dBm / ${Number(pt.snr).toFixed(0)} dB`);
+      setText("snap-phy", `${Number(pt.noise_floor || -91).toFixed(0)} dBm / ${Number(pt.phy_rate || 144).toFixed(0)}M`);
       setText("snap-mac", `${Number(pt.channel_util).toFixed(0)}% / ${Number(pt.l2_retry_rate).toFixed(1)}%`);
       setText("snap-roam", `${Number(pt.roaming_ms || 0).toFixed(0)} ms`);
       setText("snap-rtt", `${Number(pt.gw_rtt_ms).toFixed(1)} ms / ${Number(pt.jitter_ms || 1).toFixed(0)} ms`);
@@ -1240,6 +1551,12 @@
       const sqKb = ((pt.send_q_bytes || 0) / 1024).toFixed(1);
       const rqKb = ((pt.recv_q_bytes || 0) / 1024).toFixed(1);
       setText("snap-queues", `${sqKb}K / ${rqKb}K`);
+      const cpuVal = Number(pt.cpu_load || 34).toFixed(1);
+      const snapCpuEl = document.getElementById("snap-cpu");
+      if (snapCpuEl) {
+        snapCpuEl.textContent = `${cpuVal}%`;
+        snapCpuEl.className = "snap-val " + (Number(cpuVal) >= 85 ? "color-crit" : (Number(cpuVal) >= 65 ? "color-warn" : ""));
+      }
 
       const snapRiskEl = document.getElementById("snap-risk");
       if (snapRiskEl) {
@@ -1269,6 +1586,7 @@
       plotSeriesLine(ctx, timeline, toX, (p) => padT + (1 - Math.max(0, Math.min(350, p.gw_rtt_ms)) / 350) * ch, colors.sky, 2.0, false);
       plotSeriesLine(ctx, timeline, toX, (p) => padT + (1 - Math.max(0, Math.min(18000, p.send_q_bytes || 0)) / 18000) * ch, colors.amber, 1.7, false);
       plotSeriesLine(ctx, timeline, toX, (p) => padT + (1 - Math.max(0, Math.min(20000, p.recv_q_bytes || 0)) / 20000) * ch, colors.indigo, 1.7, false);
+      plotSeriesLine(ctx, timeline, toX, (p) => padT + (1 - Math.max(0, Math.min(100, p.cpu_load || 30)) / 100) * ch, colors.emerald, 1.6, true);
       timeline.forEach((p, idx) => {
         if (p.tcp_retrans > 0) {
           const x = toX(idx);
@@ -1438,6 +1756,7 @@
       return true;
     });
 
+    state.filteredMetricsList = filtered;
     setText("catalog-count-label", String(filtered.length));
 
     const tbody = document.getElementById("catalog-table-body");
@@ -1454,16 +1773,16 @@
           <tr class="${isSel ? "selected-row" : ""}" data-metric-row="${escapeHtml(m.id)}">
             <td class="text-center mono"><strong>${escapeHtml(m.id)}</strong></td>
             <td class="text-center"><span class="badge ${layerBadge}">${layerNameShort}</span></td>
-            <td class="text-left">
+            <td class="text-left cell-wrap">
               <div class="text-h3">${escapeHtml(m.name_ko)}</div>
               <div class="text-caption mono">${escapeHtml(m.name_en)}</div>
             </td>
-            <td class="text-right mono">
-              <div><strong>${escapeHtml(m.unit)}</strong></div>
+            <td class="text-left cell-wrap mono">
+              <div><strong>${escapeHtml(m.unit)}</strong> <span class="text-caption color-ok">(정상: ${escapeHtml(th.normal || "-")})</span></div>
               <div class="text-caption color-crit">위험: ${escapeHtml(th.critical || "-")}</div>
             </td>
             <td class="text-center"><span class="badge badge-neutral">${escapeHtml(m.collection_location)}</span></td>
-            <td class="text-center mono">
+            <td class="text-center cell-wrap mono">
               <div>내부 ${escapeHtml(m.interval_local || "1s")}</div>
               <div class="text-caption">보고 30s</div>
             </td>
@@ -1474,8 +1793,8 @@
 
       tbody.querySelectorAll("tr[data-metric-row]").forEach((row) => {
         row.addEventListener("click", () => {
-          state.selectedMetricId = row.getAttribute("data-metric-row") || "M01";
-          renderMetricsCatalog();
+          const id = row.getAttribute("data-metric-row") || "M01";
+          openMetricModal(id);
         });
       });
     }
@@ -1495,7 +1814,7 @@
         return `
           <div class="metric-summary-card" data-metric-card="${escapeHtml(m.id)}">
             <div>
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; gap:6px; flex-wrap:wrap;">
                 <span class="badge badge-sky mono">${escapeHtml(m.id)} • ${escapeHtml(m.collection_location)}</span>
                 <span class="badge badge-ok mono">부하: ${escapeHtml(load.level || "매우 낮음")}</span>
               </div>
@@ -1516,16 +1835,45 @@
 
       gridEl.querySelectorAll("[data-metric-card]").forEach((card) => {
         card.addEventListener("click", () => {
-          state.selectedMetricId = card.getAttribute("data-metric-card") || "M01";
-          renderMetricsCatalog();
-          document.getElementById("panel-catalog-detail")?.scrollIntoView({ behavior: "instant", block: "nearest" });
+          const id = card.getAttribute("data-metric-card") || "M01";
+          openMetricModal(id);
         });
       });
     }
   }
 
+  function openMetricModal(metricId) {
+    state.selectedMetricId = metricId || "M01";
+    renderMetricsCatalog();
+    const modal = document.getElementById("metric-detail-modal");
+    if (!modal) return;
+    modal.classList.add("active");
+    modal.setAttribute("aria-hidden", "false");
+    const bodyEl = modal.querySelector(".metric-modal-body");
+    if (bodyEl) bodyEl.scrollTop = 0;
+  }
+
+  function closeMetricModal() {
+    const modal = document.getElementById("metric-detail-modal");
+    if (!modal) return;
+    modal.classList.remove("active");
+    modal.setAttribute("aria-hidden", "true");
+  }
+
+  function navigateMetricModal(delta) {
+    const list = state.filteredMetricsList && state.filteredMetricsList.length > 0
+      ? state.filteredMetricsList
+      : (state.metricsCatalog.length > 0 ? state.metricsCatalog : getFallbackMetricsCatalog());
+    if (list.length === 0) return;
+    const idx = list.findIndex((m) => m.id === state.selectedMetricId);
+    const nextIdx = idx < 0 ? 0 : (idx + delta + list.length) % list.length;
+    openMetricModal(list[nextIdx].id);
+  }
+
   function renderMetricDetailInspector(m) {
-    setText("detail-metric-id", `${m.id} • ${m.name_en}`);
+    setText("detail-metric-id", `${m.id} • ${m.collection_location}`);
+    const hasEnInKo = (m.name_ko || "").includes("(");
+    setText("modal-metric-title", hasEnInKo ? m.name_ko : `${m.name_ko} (${m.name_en})`);
     const box = document.getElementById("metric-detail-inspector");
     if (!box) return;
 
@@ -1540,7 +1888,7 @@
           <span>① 수집 항목명 &amp; ② 쉬운 상세 설명</span>
           <span class="badge badge-sky">${escapeHtml(m.layer)}</span>
         </div>
-        <div class="text-h2" style="margin-bottom:4px;">${escapeHtml(m.name_ko)} <span class="mono text-caption">(${escapeHtml(m.name_en)})</span></div>
+        <div class="text-h2" style="margin-bottom:4px;">${escapeHtml(m.name_ko)} ${hasEnInKo ? "" : `<span class="mono text-caption">(${escapeHtml(m.name_en)})</span>`}</div>
         <p class="text-body" style="font-size:0.8rem;">${escapeHtml(m.description)}</p>
       </div>
 
@@ -1915,11 +2263,7 @@
         const targetSelect = document.getElementById("injector-target-agv");
         const agvId = (targetSelect && targetSelect.value) || state.selectedAgvId;
         state.selectedAgvId = agvId;
-
-        const msgBox = document.getElementById("injector-status-msg");
-        if (msgBox) {
-          msgBox.innerHTML = `<span class="color-warn">🚨 <strong>[${escapeHtml(agvId)}]</strong>에 <strong>${escapeHtml(scnCode)}</strong> 장애 상황 가상 체험을 시작했습니다! (사전 감지 주의 → 연결 끊김 → 자동 복구 진행 중)</span>`;
-        }
+        state.lastActiveScenarioInfo = null;
 
         await fetchJson("/api/scenarios/trigger", {
           method: "POST",
@@ -1931,11 +2275,8 @@
     });
 
     document.getElementById("btn-scenario-reset")?.addEventListener("click", async () => {
+      state.lastActiveScenarioInfo = null;
       await fetchJson("/api/scenarios/reset", { method: "POST" });
-      const msgBox = document.getElementById("injector-status-msg");
-      if (msgBox) {
-        msgBox.innerHTML = `<span class="color-ok">✅ 모든 AGV의 가상 체험 상태가 해제되어 정상 연결 상태로 복구되었습니다.</span>`;
-      }
       await pollLiveTelemetry();
     });
 
@@ -2038,6 +2379,23 @@
       renderMetricsCatalog();
     });
 
+    // 7-1. Tab 3: 수집 항목 상세 모달 제어
+    document.getElementById("btn-metric-modal-close")?.addEventListener("click", closeMetricModal);
+    document.getElementById("btn-modal-prev-metric")?.addEventListener("click", () => navigateMetricModal(-1));
+    document.getElementById("btn-modal-next-metric")?.addEventListener("click", () => navigateMetricModal(1));
+    document.getElementById("metric-detail-modal")?.addEventListener("click", (e) => {
+      if (e.target && e.target.id === "metric-detail-modal") {
+        closeMetricModal();
+      }
+    });
+    window.addEventListener("keydown", (e) => {
+      const modal = document.getElementById("metric-detail-modal");
+      if (!modal || !modal.classList.contains("active")) return;
+      if (e.key === "Escape") closeMetricModal();
+      else if (e.key === "ArrowLeft") navigateMetricModal(-1);
+      else if (e.key === "ArrowRight") navigateMetricModal(1);
+    });
+
     // 8. Tab 4: 전송 메시지 예시 탭 및 계산기 슬라이더
     document.querySelectorAll("#arch-packet-tabs button").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -2052,6 +2410,7 @@
     document.getElementById("calc-ring-sec")?.addEventListener("input", updateBandwidthCalculator);
 
     window.addEventListener("resize", () => {
+      syncNavbarHeightVar();
       if (state.activeTab === "tab-live") {
         drawFactoryFloorMap();
         drawLiveMiniChart();
@@ -2304,6 +2663,13 @@
   // ==========================================================================
   // 16. Utilities & Application Initialization
   // ==========================================================================
+  function syncNavbarHeightVar() {
+    const nav = document.getElementById("top-navbar");
+    if (nav) {
+      document.documentElement.style.setProperty("--navbar-height", `${nav.offsetHeight}px`);
+    }
+  }
+
   function setText(id, text) {
     const el = document.getElementById(id);
     if (el) el.textContent = text;
@@ -2321,6 +2687,7 @@
   async function initApp() {
     // 1. Apply Light Enterprise Default Theme immediately
     applyTheme("light");
+    syncNavbarHeightVar();
     bindEvents();
 
     // 2. Render immediately with built-in fallback data (Zero Blank Screen)

@@ -252,6 +252,22 @@ pytest tests/test_api.py -v
 
 ## 10. 변경 사항 (Changelog)
 
+### v1.1.5 (2026-11-16)
+- **수집 항목 백과사전(Tab 3) 전체 화면 목록화 및 상세 모달(Modal) 팝업 전환**:
+  - 기존 좌측 7컬럼 일람표의 상하·좌우 내부 스크롤을 제거하고 **전체 12컬럼 화면 폭**을 사용하도록 확장.
+  - 항목 행 또는 하단 카드 클릭 시 **상세 설명 모달(`#metric-detail-modal`)**이 팝업으로 열리며 이전/다음 항목 이동 및 `Esc`/배경 클릭 닫기 지원.
+- **한국어 단어 줄바꿈 및 폭/폰트 최적화**:
+  - 전역 `word-break: keep-all; overflow-wrap: break-word;` 적용 및 KPI 카드, 타임라인 눈금, 스냅샷 스트립(5×2 그리드), 각 탭 테이블의 폰트·패딩·컬럼 폭 최적화로 단어 중간 잘림 및 불필요한 가로 스크롤 해소.
+- **4대 장애 상황 모사(시뮬레이션) 가시성 및 인지성 강화**:
+  - Tab 1 `장애 상황 가상 체험`에 **실시간 모사 모니터(`#sim-live-monitor`)**를 신설하여 현재 진행 단계(1~4단계 진행 바), 시나리오별 원인 설명, 정상 vs 이상 핵심 지표(예: `SCN-04` 와이파이 정상 vs CPU/Recv-Q 적체)를 1초 단위로 실시간 표시.
+  - 2D 공장 지도 AGV 콜아웃 배지, 1초 추이 미니 차트 원인 지표 곡선, Tab 2 `핵심 구분 배너(정상 vs 이상)` 및 CPU/잡음/속도 스냅샷을 추가하여 4대 장애의 차이를 즉각 인지 가능하도록 개선.
+
+### v1.1.4 (2026-11-16)
+- **기술 연구·검증 보고서 (Word `.docx` 및 Markdown `.md`) 정식 산출**:
+  - 제조 환경의 무선 방해 요소(난반사, 설비 이동, 전자기 간섭, 채널 혼잡), 기존 7종 기초 무선 지표의 한계, 21종 확장 지표(`M01`~`M21`) 선정 및 3단계 하이브리드 수집 모델 검증 결과를 종합한 기술 보고서 작성 완료.
+  - **Word 보고서**: [docs/AGV_AMR_무선네트워크_사전감지_및_사후분석_기술보고서.docx](file:///home/planner/Dev/network_dashboard/docs/AGV_AMR_무선네트워크_사전감지_및_사후분석_기술보고서.docx) (표 17종, 고해상도 아키텍처·시퀀스 플로우·파형 차트 그림 11종 내장)
+  - **Markdown 보고서**: [docs/TECHNICAL_REPORT.md](file:///home/planner/Dev/network_dashboard/docs/TECHNICAL_REPORT.md)
+
 ### v1.1.3 (2026-11-16)
 - **MIMO 안테나별 신호 세기, 채널 상세 정보, 무선 링크 종합 품질 독립 항목(`M19`~`M21`) 추가 (18종 → 21종 확장)**:
   - **`M19` MIMO 안테나별 신호 세기 및 편차 (`Per-Antenna RSSI & Chain Imbalance`)**: 2×2 MIMO 안테나의 개별 신호(`Chain 0`, `Chain 1`) 및 안테나 간 편차(dB)를 수집하여 합산 RSSI(`M01`)만으로는 절대 알 수 없는 **한쪽 안테나 커넥터 풀림/단선 및 회전 시 차체 철판 가림**을 사전 감지·사후 규명.
@@ -305,3 +321,5 @@ pytest tests/test_api.py -v
 - [ANALYSIS_AND_METRICS.md](file:///home/planner/Dev/network_dashboard/docs/ANALYSIS_AND_METRICS.md): AGV/ACS 전용 18종 수집 지표 명세, 쉬운 용어 정의, 4대 장애 시나리오 RCA 의사결정 알고리즘, AGV/ACS 담당자별 과업.
 - [ARCHITECTURE.md](file:///home/planner/Dev/network_dashboard/docs/ARCHITECTURE.md): 시스템/DB 스키마(TSDB 필요성), `.env` 환경변수(포트 9921), REST API 명세, 5대 탭 구조.
 - [FAILURE_LEDGER.md](file:///home/planner/Dev/network_dashboard/docs/FAILURE_LEDGER.md): 빌드/런타임 실패 및 설계 개선 이력 투명 기록 원장.
+- [AGV_AMR_무선네트워크_사전감지_및_사후분석_기술보고서.docx](file:///home/planner/Dev/network_dashboard/docs/AGV_AMR_무선네트워크_사전감지_및_사후분석_기술보고서.docx): 제조 환경 AGV/AMR–ACS 무선 네트워크 사전 감지 및 사후 원인 분석 기술 보고서 (Microsoft Word 원본).
+- [TECHNICAL_REPORT.md](file:///home/planner/Dev/network_dashboard/docs/TECHNICAL_REPORT.md): 기술 보고서 마크다운(Markdown) 버전.

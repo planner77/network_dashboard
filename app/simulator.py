@@ -320,16 +320,16 @@ class Simulator:
         if code != "NORMAL" and f > 0:
             late = _clamp((f - 0.4) / 0.6, 0, 1)
             if code == "SCN-01":
-                rssi -= 14 * f
+                rssi -= 21 * f
                 beacon += int(round(6 * f * f + rng.random()))
-                retry_extra = 26 * f
+                retry_extra = 28 * f
                 tcp = 5 * late
                 send_q = 8000 * f * f
                 rtt_add = 55 * f * f
                 jit_add = 22 * f * f
             elif code == "SCN-02":
-                rssi -= 16 * f
-                nf += 12 * f
+                rssi -= 21 * f
+                nf += 16 * f
                 beacon += int(round(3.5 * f * f + rng.random() * 0.8))
                 retry_extra = 38 * f
                 tcp = 5 * late

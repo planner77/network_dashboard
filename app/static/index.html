@@ -163,7 +163,7 @@
               <span class="kpi-meta-val tabular-nums">30.0 초</span>
             </div>
             <div class="kpi-meta-item">
-              <span class="kpi-meta-label">기존 방식 공백 시간</span>
+              <span class="kpi-meta-label">기존 보고 공백</span>
               <span class="kpi-meta-val color-warn tabular-nums">29.9 초 공백</span>
             </div>
             <div class="kpi-meta-item">
@@ -192,7 +192,7 @@
           <div class="kpi-meta-grid">
             <div class="kpi-meta-item">
               <span class="kpi-meta-label">감지 방식</span>
-              <span class="kpi-meta-val">1초 변화 추세 감시</span>
+              <span class="kpi-meta-val">1초 추세 감시</span>
             </div>
             <div class="kpi-meta-item">
               <span class="kpi-meta-label">사전 감지 범위</span>
@@ -227,7 +227,7 @@
               <span class="kpi-meta-val color-ok tabular-nums">초당 6건 기록</span>
             </div>
             <div class="kpi-meta-item">
-              <span class="kpi-meta-label">30초 정기 보고 이력</span>
+              <span class="kpi-meta-label">30초 보고 이력</span>
               <span class="kpi-meta-val tabular-nums" id="kpi-tsdb-reports">120건</span>
             </div>
             <div class="kpi-meta-item">
@@ -319,24 +319,30 @@
             <div class="injector-controls">
               <div class="injector-btn-grid">
                 <button class="btn-scenario-trigger" data-scn="SCN-01" type="button">
-                  <div class="scn-btn-top"><span class="mono">가상 체험 1 (SCN-01)</span><span>끊김 18초 전 감지</span></div>
+                  <div class="scn-btn-top"><span class="mono">가상 체험 1 (SCN-01)</span><span class="scn-lead-tag">18초 전 감지</span></div>
                   <div class="scn-btn-title">기지국(AP) 변경 지연 (로밍 실패)</div>
+                  <div class="scn-btn-desc">신호 하락(-80dBm↓)에도 기존 AP 고착 → 로밍 지연</div>
                 </button>
                 <button class="btn-scenario-trigger" data-scn="SCN-02" type="button">
-                  <div class="scn-btn-top"><span class="mono">가상 체험 2 (SCN-02)</span><span>끊김 16초 전 감지</span></div>
+                  <div class="scn-btn-top"><span class="mono">가상 체험 2 (SCN-02)</span><span class="scn-lead-tag">16초 전 감지</span></div>
                   <div class="scn-btn-title">철제 랙 음영 구역 &amp; 설비 전파 간섭</div>
+                  <div class="scn-btn-desc">차폐 음영 + 용접 잡음(-75dBm) → SNR·속도 급락</div>
                 </button>
                 <button class="btn-scenario-trigger" data-scn="SCN-03" type="button">
-                  <div class="scn-btn-top"><span class="mono">가상 체험 3 (SCN-03)</span><span>끊김 15초 전 감지</span></div>
+                  <div class="scn-btn-top"><span class="mono">가상 체험 3 (SCN-03)</span><span class="scn-lead-tag">15초 전 감지</span></div>
                   <div class="scn-btn-title">무선 채널 혼잡 (동시 접속 과부하)</div>
+                  <div class="scn-btn-desc">신호(-60dBm) 정상이나 채널 혼잡 90%+ → 응답 지연</div>
                 </button>
                 <button class="btn-scenario-trigger" data-scn="SCN-04" type="button">
-                  <div class="scn-btn-top"><span class="mono">가상 체험 4 (SCN-04)</span><span>끊김 14초 전 감지</span></div>
+                  <div class="scn-btn-top"><span class="mono">가상 체험 4 (SCN-04)</span><span class="scn-lead-tag">14초 전 감지</span></div>
                   <div class="scn-btn-title">통신 프로그램 일시 멈춤 (CPU 과부하)</div>
+                  <div class="scn-btn-desc">와이파이 정상이나 CPU 97%·수신대기열 적체로 멈춤</div>
                 </button>
               </div>
-              <div class="injector-status-bar" id="injector-status-msg">
-                <span>⚡ 위 버튼을 누르면 선택한 AGV에 가상 장애가 발생하여 <strong>[사전 감지 알림 → 연결 끊김 → 자동 복구 및 원인 분석]</strong> 전 과정을 실시간으로 볼 수 있습니다.</span>
+              <div class="sim-live-monitor" id="sim-live-monitor">
+                <div class="injector-status-bar" id="injector-status-msg">
+                  <span>⚡ 위 4가지 상황 버튼을 누르면 선택한 AGV에서 45초간 <strong>[이상 징후 → 사전 감지 알림 → 연결 끊김 → 자동 복구]</strong> 과정과 원인 지표 변화를 실시간으로 모사합니다.</span>
+                </div>
               </div>
             </div>
           </article>
@@ -352,17 +358,17 @@
             </div>
 
             <div class="table-responsive">
-              <table class="telemetry-table" aria-label="AGV 실시간 상태 표">
+              <table class="telemetry-table table-compact" aria-label="AGV 실시간 상태 표">
                 <thead>
                   <tr>
-                    <th class="text-left">AGV 번호</th>
-                    <th class="text-center">연결 구역</th>
-                    <th class="text-right">신호 세기(RSSI)</th>
-                    <th class="text-right">신호대잡음(SNR)</th>
-                    <th class="text-right">관문 응답(RTT)</th>
-                    <th class="text-right">소켓 재전송</th>
-                    <th class="text-right">위험 점수</th>
-                    <th class="text-center">현재 연결 상태</th>
+                    <th class="text-left">AGV</th>
+                    <th class="text-center">구역</th>
+                    <th class="text-right">신호(RSSI)</th>
+                    <th class="text-right">SNR</th>
+                    <th class="text-right">응답(RTT)</th>
+                    <th class="text-right">재전송</th>
+                    <th class="text-right">위험도</th>
+                    <th class="text-center">연결 상태</th>
                   </tr>
                 </thead>
                 <tbody id="fleet-table-body">
@@ -388,7 +394,7 @@
                 <span class="title-accent-bar indigo"></span>
                 <h2 class="text-h2" id="selected-agv-chart-title">AGV-02 실시간 1초 기록 추이 &amp; 30초 정기 보고 시점 (최근 180초)</h2>
               </div>
-              <div style="display:flex; gap:8px; font-size:0.72rem; font-weight:600;">
+              <div id="live-mini-chart-legend" style="display:flex; gap:8px; font-size:0.72rem; font-weight:600; flex-wrap:wrap;">
                 <span class="color-accent">━ 신호 세기(dBm)</span>
                 <span class="color-warn">━ 위험 점수(0~100)</span>
                 <span class="color-ok">● 30초 정기 보고</span>
@@ -414,16 +420,16 @@
             <span class="badge badge-ok">30초 보고 시 요약 데이터 함께 전송</span>
           </div>
           <div class="table-responsive">
-            <table class="telemetry-table">
+            <table class="telemetry-table table-compact">
               <thead>
                 <tr>
                   <th class="text-left">수신 시각</th>
-                  <th class="text-left">AGV 번호</th>
+                  <th class="text-left">AGV</th>
                   <th class="text-center">보고 결과</th>
                   <th class="text-right">도착 간격</th>
-                  <th class="text-right">30초 내 최저 신호</th>
-                  <th class="text-right">30초 재전송 합계</th>
-                  <th class="text-right">30초 최고 위험도</th>
+                  <th class="text-right">최저 신호</th>
+                  <th class="text-right">재전송</th>
+                  <th class="text-right">최고 위험도</th>
                 </tr>
               </thead>
               <tbody id="recent-reports-tbody"></tbody>
@@ -441,14 +447,14 @@
             <span class="badge badge-warn">행 클릭 시 2번 탭에서 상세 파형 확인</span>
           </div>
           <div class="table-responsive">
-            <table class="telemetry-table">
+            <table class="telemetry-table table-compact">
               <thead>
                 <tr>
                   <th class="text-left">기록 번호</th>
-                  <th class="text-left">대상 AGV</th>
-                  <th class="text-center">장애 유형</th>
+                  <th class="text-left">AGV</th>
+                  <th class="text-center">유형</th>
                   <th class="text-left">자동 판별된 끊김 원인</th>
-                  <th class="text-right">사전 감지 시간</th>
+                  <th class="text-right">사전 감지</th>
                   <th class="text-center">상세 파형</th>
                 </tr>
               </thead>
@@ -528,18 +534,21 @@
             <div class="slider-wrapper">
               <input type="range" class="time-slider" id="rca-time-slider" min="-89" max="30" step="1" value="-18" aria-label="장애 전후 120초 타임라인 이동 슬라이더" />
               <div class="slider-ticks mono">
-                <span>-89초 (정상)</span>
-                <span>-60초 (정기 보고 성공)</span>
-                <span>-30초 (정기 보고 성공)</span>
-                <span class="color-warn">★ -18초 (사전 감지 알림!)</span>
-                <span class="color-crit">✖ 0초 (30초 보고 끊김!)</span>
-                <span class="color-ok">+30초 (복구 완료)</span>
+                <span>-89초</span>
+                <span>-60초 (정기보고)</span>
+                <span>-30초 (정기보고)</span>
+                <span class="color-warn">★ -18초 (사전감지)</span>
+                <span class="color-crit">✖ 0초 (보고끊김)</span>
+                <span class="color-ok">+30초 (복구)</span>
               </div>
             </div>
             <div class="badge badge-sky mono" style="font-size:0.84rem; padding:6px 12px;" id="rca-current-time-badge">
               선택 시점: -18초 (사전 감지 시점)
             </div>
           </div>
+
+          <!-- 모사 시나리오 핵심 구분 요약 배너 (정상 vs 이상 지표 한눈에 인지) -->
+          <div class="rca-signature-bar" id="rca-scenario-signature-bar"></div>
 
           <div class="comparison-dual-grid">
             <div class="comparison-box legacy">
@@ -596,6 +605,7 @@
                   <span style="color:#E11D48;">■ 소켓 재전송(회/s)</span>
                   <span style="color:#D97706;">━ 송신 대기열(Send-Q)</span>
                   <span style="color:#4F46E5;">━ 수신 대기열(Recv-Q)</span>
+                  <span style="color:#059669;">┅ AGV CPU(%)</span>
                 </div>
               </div>
               <canvas class="sync-canvas" id="rca-chart-l2" width="960" height="148"></canvas>
@@ -620,11 +630,13 @@
           <div class="cursor-snapshot-strip mono" id="rca-snapshot-strip">
             <div class="snap-cell"><span class="snap-label">선택 시점</span><span class="snap-val color-accent" id="snap-offset">-18초</span></div>
             <div class="snap-cell"><span class="snap-label">신호세기 / SNR</span><span class="snap-val" id="snap-rf">-76 dBm / 16 dB</span></div>
+            <div class="snap-cell"><span class="snap-label">잡음 / 무선속도</span><span class="snap-val" id="snap-phy">-91 dBm / 144M</span></div>
             <div class="snap-cell"><span class="snap-label">채널혼잡 / 재시도</span><span class="snap-val" id="snap-mac">38% / 24%</span></div>
             <div class="snap-cell"><span class="snap-label">AP 변경 시간</span><span class="snap-val" id="snap-roam">0 ms</span></div>
             <div class="snap-cell"><span class="snap-label">관문 응답 / 흔들림</span><span class="snap-val" id="snap-rtt">48 ms / 19 ms</span></div>
             <div class="snap-cell"><span class="snap-label">소켓 재전송</span><span class="snap-val" id="snap-retrans">4 회/s</span></div>
-            <div class="snap-cell"><span class="snap-label">송신 / 수신 대기열</span><span class="snap-val" id="snap-queues">6.4 KB / 0 B</span></div>
+            <div class="snap-cell"><span class="snap-label">송신 / 수신 대기열</span><span class="snap-val" id="snap-queues">6.4K / 0K</span></div>
+            <div class="snap-cell"><span class="snap-label">AGV CPU 사용률</span><span class="snap-val" id="snap-cpu">34.0%</span></div>
             <div class="snap-cell"><span class="snap-label">위험 점수 (상태)</span><span class="snap-val color-warn" id="snap-risk">74.5 (사전감지)</span></div>
           </div>
         </article>
@@ -688,48 +700,33 @@
         </article>
       </div>
 
-      <!-- Row 2: 좌측 7컬럼 (상단 헤더 고정 일람표) + 우측 5컬럼 (8대 필수 명세 상세 카드) -->
+      <!-- Row 2: 전체 화면 12컬럼 일람표 (상하·좌우 내부 스크롤 제거, 행 클릭 시 모달로 상세 설명 표시) -->
       <div class="grid-12">
-        <!-- Left 7 Cols: Sticky Header Table -->
-        <article class="card col-span-7" id="panel-catalog-table">
+        <article class="card col-span-12" id="panel-catalog-table">
           <div class="card-header">
             <div class="card-title-group">
               <span class="title-accent-bar"></span>
-              <h2 class="text-h2">AGV/AMR 및 ACS 전용 수집 항목 일람표 (<span id="catalog-count-label">21</span>종 • 스크롤 시 상단 제목 줄 고정)</h2>
+              <h2 class="text-h2">AGV/AMR 및 ACS 전용 수집 항목 일람표 (<span id="catalog-count-label">21</span>종)</h2>
             </div>
-            <span class="text-caption">행을 클릭하면 우측에 상세 설명이 표시됩니다</span>
+            <span class="badge badge-sky">항목을 클릭하면 팝업 모달로 상세 설명이 표시됩니다</span>
           </div>
 
-          <!-- .catalog-table-scroll: 스크롤 시 thead th가 상단에 고정(Sticky)됨 -->
           <div class="catalog-table-scroll">
-            <table class="telemetry-table" aria-label="21종 네트워크 수집 지표 명세 테이블">
+            <table class="telemetry-table catalog-full-table" aria-label="21종 네트워크 수집 지표 명세 테이블">
               <thead>
                 <tr>
-                  <th class="text-center">번호</th>
-                  <th class="text-center">분류</th>
-                  <th class="text-left">① 수집 항목명 (국문 / 영문)</th>
-                  <th class="text-right">③ 단위 / 위험 기준</th>
-                  <th class="text-center">④ 수집 위치</th>
-                  <th class="text-center">⑤ 권장 주기</th>
-                  <th class="text-center">⑥ 시스템 부하</th>
+                  <th class="text-center col-id">번호</th>
+                  <th class="text-center col-layer">분류</th>
+                  <th class="text-left col-name">① 수집 항목명 (국문 / 영문)</th>
+                  <th class="text-left col-thresh">③ 단위 / 정상·위험 기준</th>
+                  <th class="text-center col-loc">④ 수집 위치</th>
+                  <th class="text-center col-interval">⑤ 권장 주기</th>
+                  <th class="text-center col-load">⑥ 시스템 부하</th>
                 </tr>
               </thead>
               <tbody id="catalog-table-body"></tbody>
             </table>
           </div>
-        </article>
-
-        <!-- Right 5 Cols: 8대 필수 항목 상세 인스펙터 -->
-        <article class="card col-span-5" id="panel-catalog-detail">
-          <div class="card-header">
-            <div class="card-title-group">
-              <span class="title-accent-bar indigo"></span>
-              <h2 class="text-h2">선택 항목 상세 설명 (의미 · 문제 상황 · 사전 감지 · 사후 분석)</h2>
-            </div>
-            <span class="badge badge-sky mono" id="detail-metric-id">M01 • RSSI</span>
-          </div>
-
-          <div class="metric-detail-grid" id="metric-detail-inspector"></div>
         </article>
       </div>
 
@@ -741,7 +738,7 @@
               <span class="title-accent-bar ok"></span>
               <h2 class="text-h2">전체 21종 수집 항목 한눈에 보기 카드 목록 (AGV/AMR 및 ACS 직접 수집 항목)</h2>
             </div>
-            <span class="text-caption">카드를 클릭하면 상단 상세 설명 창에서 수집 명령어와 예시 코드를 볼 수 있습니다</span>
+            <span class="text-caption">카드를 클릭하면 상세 설명 모달에서 수집 명령어와 예시 코드를 볼 수 있습니다</span>
           </div>
           <div class="metrics-full-grid" id="catalog-cards-grid"></div>
         </article>
@@ -909,7 +906,7 @@
           </div>
 
           <div class="table-responsive" style="margin-top:12px;">
-            <table class="telemetry-table">
+            <table class="telemetry-table table-wrap-text">
               <thead>
                 <tr>
                   <th class="text-left">수집 방식 비교</th>
@@ -1144,7 +1141,7 @@
           </div>
 
           <div class="table-responsive">
-            <table class="telemetry-table">
+            <table class="telemetry-table table-wrap-text">
               <thead>
                 <tr>
                   <th class="text-left">전송 구분</th>
@@ -1216,6 +1213,28 @@
       </div>
     </div>
   </aside>
+
+  <!-- ====================================================================
+       수집 항목 상세 설명 모달 (#metric-detail-modal)
+       ==================================================================== -->
+  <div class="metric-modal-backdrop" id="metric-detail-modal" role="dialog" aria-modal="true" aria-labelledby="modal-metric-title" aria-hidden="true">
+    <div class="metric-modal-dialog" id="panel-catalog-detail">
+      <div class="metric-modal-header">
+        <div class="metric-modal-title-wrap">
+          <span class="badge badge-sky mono" id="detail-metric-id">M01 • RSSI</span>
+          <h2 class="text-h2" id="modal-metric-title">수집 항목 상세 설명 (의미 · 문제 상황 · 사전 감지 · 사후 분석)</h2>
+        </div>
+        <div class="metric-modal-actions">
+          <button class="btn btn-sm" id="btn-modal-prev-metric" type="button" title="이전 수집 항목">← 이전 항목</button>
+          <button class="btn btn-sm" id="btn-modal-next-metric" type="button" title="다음 수집 항목">다음 항목 →</button>
+          <button class="btn btn-sm btn-crit" id="btn-metric-modal-close" type="button" aria-label="상세 설명 모달 닫기">✕ 닫기</button>
+        </div>
+      </div>
+      <div class="metric-modal-body">
+        <div class="metric-detail-grid" id="metric-detail-inspector"></div>
+      </div>
+    </div>
+  </div>
 
   <script src="/static/js/app.js"></script>
 </body>
