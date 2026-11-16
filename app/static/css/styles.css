@@ -123,10 +123,16 @@ pre {
   font-variant-numeric: tabular-nums;
 }
 
-code,
+code {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
 pre {
   word-break: normal;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
+  white-space: pre;
+  overflow-x: auto;
 }
 
 .text-h1 {
@@ -931,8 +937,41 @@ pre {
 
 .sim-metrics-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
+}
+
+.sim-action-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--status-warn-soft), var(--accent-primary-soft));
+  border: 1px solid var(--status-warn);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  font-weight: 600;
+  word-break: keep-all;
+  animation: sim-flash-in 0.35s ease;
+}
+
+.sim-action-toast.toast-ok {
+  background: linear-gradient(90deg, var(--status-ok-soft), var(--bg-elevated));
+  border-color: var(--status-ok);
+}
+
+@keyframes sim-flash-in {
+  0%   { opacity: 0; transform: translateY(-4px); box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.35); }
+  100% { opacity: 1; transform: translateY(0); box-shadow: none; }
+}
+
+.sim-delta-hint {
+  font-size: 0.67rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .sim-metric-pill {
@@ -1064,13 +1103,14 @@ pre {
   table-layout: fixed;
 }
 
-.catalog-full-table th.col-id       { width: 58px; }
-.catalog-full-table th.col-layer    { width: 94px; }
+.catalog-full-table th.col-id       { width: 56px; }
+.catalog-full-table th.col-layer    { width: 92px; }
 .catalog-full-table th.col-name     { width: auto; }
-.catalog-full-table th.col-thresh   { width: 24%; }
-.catalog-full-table th.col-loc      { width: 148px; }
-.catalog-full-table th.col-interval { width: 154px; }
-.catalog-full-table th.col-load     { width: 124px; }
+.catalog-full-table th.col-thresh   { width: 22%; }
+.catalog-full-table th.col-loc      { width: 144px; }
+.catalog-full-table th.col-interval { width: 146px; }
+.catalog-full-table th.col-load     { width: 116px; }
+.catalog-full-table th.col-action   { width: 88px; }
 
 .catalog-full-table td.cell-wrap {
   white-space: normal;

@@ -596,6 +596,7 @@
   const SCENARIO_LIVE_SPECS = {
     "SCN-01": {
       title: "기지국(AP) 변경 지연 및 실패 (로밍 실패)",
+      watchHint: "주목 지표: 신호 세기(RSSI) ▼ 급락 · 비콘 놓침 ▲ · AP 변경 시간(ms) ▲",
       describe: (agv, phase) => {
         if (phase === "RECOVERING") {
           return `뒤늦게 새 기지국으로 변경 완료(로밍 지연 ${Math.round(agv.roaming_ms || 280)}ms) 후 끊김 전후 120초 상세 기록을 ACS로 전송 중입니다.`;
@@ -612,6 +613,7 @@
     },
     "SCN-02": {
       title: "철제 랙 음영 구역 & 용접 설비 전파 간섭",
+      watchHint: "주목 지표: 신호(RSSI) ▼ · 주변 잡음 ▲ · SNR ▼ · 무선 속도(PHY) ▼",
       describe: (_agv, phase) => {
         if (phase === "RECOVERING") {
           return "음영·설비 간섭 구간을 벗어나며 신호와 SNR이 회복 중이며, 위치 좌표(X,Y) 기반 음영 지도 기록이 저장됩니다.";
@@ -628,6 +630,7 @@
     },
     "SCN-03": {
       title: "무선 채널 혼잡 (동시 접속 과부하)",
+      watchHint: "주목 지표: 신호 세기 정상(✓) · 채널 혼잡도 ▲ 90%+ · 응답(RTT) ▲ · 재전송 ▲",
       describe: (agv, phase) => {
         if (phase === "RECOVERING") {
           return "채널 혼잡이 해소되며 관문 응답 시간(RTT)과 흔들림(Jitter)이 정상 수준으로 돌아오고 있습니다.";
@@ -644,6 +647,7 @@
     },
     "SCN-04": {
       title: "통신 프로그램 일시 멈춤 (CPU·버퍼 과부하)",
+      watchHint: "주목 지표: 와이파이·응답 정상(✓) · AGV CPU ▲ 97% · 수신 대기열(Recv-Q) ▲",
       describe: (agv, phase) => {
         if (phase === "RECOVERING") {
           return "AGV CPU 점유율이 낮아지며 밀려 있던 수신 대기열(Recv-Q)이 비워지고, 와이파이 문제가 아님을 자동 판별합니다.";
@@ -722,7 +726,15 @@
         </div>
       `).join("");
 
+      const toastHtml = state.simToastMessage && (Date.now() - (state.simToastTs || 0) < 8000)
+        ? `<div class="sim-action-toast" role="status">
+             <span>${escapeHtml(state.simToastMessage)}</span>
+             <span class="badge badge-warn mono">${escapeHtml(spec.watchHint || "")}</span>
+           </div>`
+        : "";
+
       container.innerHTML = `
+        ${toastHtml}
         <div class="sim-monitor-card ${cardPhaseCls}" id="injector-status-msg">
           <div class="sim-monitor-header">
             <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
@@ -866,13 +878,18 @@
     }
 
     // 선택된 AGV 하단 상태 바
+    const activeScnMap = new Map((ov.active_scenarios || []).map((a) => [a.agv_id, a.scenario_code]));
     const selAgv = fleet.find((a) => a.agv_id === state.selectedAgvId) || fleet[0];
     if (selAgv) {
       setText("map-selected-agv-pill", `선택됨: ${selAgv.agv_id}`);
       const detailBar = document.getElementById("map-agv-detail-bar");
       if (detailBar) {
-        const scnTag = selAgv.scenario_code && selAgv.scenario_code !== "NORMAL"
-          ? `<span class="badge badge-crit mono">${escapeHtml(selAgv.scenario_code)} 가상 체험 진행 중</span>`
+        const effCode = (selAgv.scenario_code && selAgv.scenario_code !== "NORMAL")
+          ? selAgv.scenario_code
+          : activeScnMap.get(selAgv.agv_id);
+        const effSpec = effCode ? SCENARIO_LIVE_SPECS[effCode] : null;
+        const scnTag = effCode
+          ? `<span class="badge badge-crit mono">⚡ ${escapeHtml(effCode)} 체험 중${effSpec ? ` (${escapeHtml(effSpec.title)})` : ""}</span>`
           : `<span class="badge badge-ok mono">정상 운행 중</span>`;
         detailBar.innerHTML = `
           <span><strong>[${escapeHtml(selAgv.agv_id)}]</strong> 위치: (${Number(selAgv.pos_x).toFixed(1)}m, ${Number(selAgv.pos_y).toFixed(1)}m) | 속도: ${Number(selAgv.velocity).toFixed(2)} m/s | 구역: ${escapeHtml(selAgv.zone_id || selAgv.ap_id)} (${escapeHtml(selAgv.bssid || "")})</span>
@@ -902,9 +919,12 @@
           stateBadge = `<span class="badge badge-warn">사전 감지 주의</span>`;
         }
 
-        const spec = agv.scenario_code && agv.scenario_code !== "NORMAL" ? SCENARIO_LIVE_SPECS[agv.scenario_code] : null;
+        const effCode = (agv.scenario_code && agv.scenario_code !== "NORMAL")
+          ? agv.scenario_code
+          : activeScnMap.get(agv.agv_id);
+        const spec = effCode ? SCENARIO_LIVE_SPECS[effCode] : null;
         const simHint = spec
-          ? `<div class="text-caption mono color-crit" style="font-size:0.64rem; margin-top:2px; white-space:normal; word-break:keep-all;">${escapeHtml(spec.badgeText(agv))}</div>`
+          ? `<div class="text-caption mono color-crit" style="font-size:0.64rem; margin-top:2px; white-space:normal; word-break:keep-all;">⚡ ${escapeHtml(spec.badgeText(agv))}</div>`
           : "";
 
         return `
@@ -1186,16 +1206,20 @@
     ];
 
     state._renderedAgvHitboxes = [];
+    const activeScnMap = new Map((ov.active_scenarios || []).map((a) => [a.agv_id, a.scenario_code]));
 
     fleet.forEach((agv) => {
       const gx = toX(agv.pos_x);
       const gy = toY(agv.pos_y);
       const isSelected = agv.agv_id === state.selectedAgvId;
+      const effScenarioCode = (agv.scenario_code && agv.scenario_code !== "NORMAL")
+        ? agv.scenario_code
+        : activeScnMap.get(agv.agv_id);
 
       let stColor = colors.emerald;
       if (agv.conn_state === "DISCONNECTED" || agv.risk_score >= 85) {
         stColor = colors.rose;
-      } else if (agv.conn_state === "PRE_WARNING" || agv.risk_score >= 45) {
+      } else if (agv.conn_state === "PRE_WARNING" || agv.risk_score >= 45 || effScenarioCode) {
         stColor = colors.amber;
       }
 
@@ -1244,12 +1268,12 @@
       ctx.textAlign = "center";
       ctx.fillText(labelTxt, gx, gy - 14);
 
-      if (agv.scenario_code && agv.scenario_code !== "NORMAL") {
-        const spec = SCENARIO_LIVE_SPECS[agv.scenario_code];
-        const calloutTxt = spec ? spec.badgeText(agv) : agv.scenario_code;
+      if (effScenarioCode) {
+        const spec = SCENARIO_LIVE_SPECS[effScenarioCode];
+        const calloutTxt = spec ? `⚡ ${spec.badgeText(agv)}` : `⚡ ${effScenarioCode}`;
         ctx.font = "700 9.5px 'JetBrains Mono', monospace";
         const cw = ctx.measureText(calloutTxt).width + 10;
-        ctx.fillStyle = colors.rose;
+        ctx.fillStyle = agv.conn_state === "DISCONNECTED" ? colors.rose : colors.amber;
         ctx.fillRect(gx - cw / 2, gy + 11, cw, 15);
         ctx.fillStyle = "#FFFFFF";
         ctx.fillText(calloutTxt, gx, gy + 21.5);
@@ -1346,9 +1370,10 @@
     const latestPt = series[series.length - 1] || {};
     const ovFleet = (state.overview && state.overview.fleet) || [];
     const curAgv = ovFleet.find((a) => a.agv_id === state.selectedAgvId) || {};
+    const activeScnEntry = ((state.overview && state.overview.active_scenarios) || []).find((a) => a.agv_id === state.selectedAgvId);
     const activeCode = (curAgv.scenario_code && curAgv.scenario_code !== "NORMAL")
       ? curAgv.scenario_code
-      : (latestPt.scenario_code && latestPt.scenario_code !== "NORMAL" ? latestPt.scenario_code : null);
+      : (activeScnEntry ? activeScnEntry.scenario_code : (latestPt.scenario_code && latestPt.scenario_code !== "NORMAL" ? latestPt.scenario_code : null));
 
     const legendEl = document.getElementById("live-mini-chart-legend");
     if (activeCode === "SCN-04" || activeCode === "SCN-03" || activeCode === "SCN-01" || activeCode === "SCN-02") {
@@ -1787,6 +1812,7 @@
               <div class="text-caption">보고 30s</div>
             </td>
             <td class="text-center"><span class="badge ${loadBadge}">${escapeHtml(load.level || "매우 낮음")}</span></td>
+            <td class="text-center"><button class="btn btn-sm btn-primary" type="button">보기 ↗</button></td>
           </tr>
         `;
       }).join("");
@@ -2264,6 +2290,9 @@
         const agvId = (targetSelect && targetSelect.value) || state.selectedAgvId;
         state.selectedAgvId = agvId;
         state.lastActiveScenarioInfo = null;
+        const spec = SCENARIO_LIVE_SPECS[scnCode];
+        state.simToastMessage = `⚡ [${agvId}] ${scnCode} (${spec ? spec.title : ""}) 가상 체험 시작!`;
+        state.simToastTs = Date.now();
 
         await fetchJson("/api/scenarios/trigger", {
           method: "POST",
@@ -2276,6 +2305,8 @@
 
     document.getElementById("btn-scenario-reset")?.addEventListener("click", async () => {
       state.lastActiveScenarioInfo = null;
+      state.simToastMessage = "";
+      state.simToastTs = 0;
       await fetchJson("/api/scenarios/reset", { method: "POST" });
       await pollLiveTelemetry();
     });

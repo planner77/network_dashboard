@@ -10,7 +10,7 @@ LABEL org.opencontainers.image.title="AGV/AMR-ACS Wireless Network Telemetry Das
       org.opencontainers.image.description="AGV/AMR & ACS 21-metric wireless network pre-detection & post-mortem RCA mock-up dashboard (including MIMO per-antenna RSSI, channel info & link quality)" \
       org.opencontainers.image.source="https://github.com/planner77/network_dashboard" \
       org.opencontainers.image.url="https://github.com/planner77/network_dashboard" \
-      org.opencontainers.image.version="1.1.5"
+      org.opencontainers.image.version="1.1.6"
 
 # Prevent python from writing pyc files and buffering stdout/stderr
 ENV PYTHONDONTWRITEBYTECODE=1 \
